@@ -1,0 +1,120 @@
+{
+  "title": "投机解码",
+  "summary": "投机解码用一个小模型「先猜」多个 token，再用大模型一次并行验证，把 decode 从访存受限变成算力受限——这是 2023 年后最有价值的推理优化之一。",
+  "updated_at": "2026-11-05",
+  "sections": [
+    {
+      "heading": "核心原理",
+      "tldr": "小模型串行草拟 K 个 token，大模型用一次前向并行验证这 K 个 token，接受前缀、拒绝处重采样。数学上保证<strong>输出分布与原模型完全一致</strong>——这是它与「用小模型直接生成」的根本区别。",
+      "body": "<p>为什么有效：decode 阶段是访存瓶颈，大模型每生成 1 个 token 就要把全部权重读一遍，几乎不用算力。如果能让大模型<strong>一次前向算 K 个位置</strong>，那这 K 个 token 的成本几乎等于 1 个 token。</p><pre><code>1. 草稿：y₁..y_K ← draft_model(x, y₁..y_{K-1})      # 串行，K 步小模型\n2. 验证：p₁..p_K ← target_model(x, y₁..y_K)      # 一次并行前向\n3. 接受：逐位采样，若 yᵢ 的接受概率 ≥ 随机阈值则接受\n4. 拒绝：在第一个拒绝位从修正分布重采样，后续草稿丢弃</code></pre><p>关键性质：拒绝时用 <code>p_corrected ∝ max(0, p_target - p_draft)</code> 重采样，可以数学证明最终输出的分布<strong>严格等于</strong>目标模型的分布——零质量损失。</p>",
+      "points": [
+        "分布无损：这是投机解码与「用小模型替代」的根本区别",
+        "收益取决于草稿接受率：接受率高 → 接近 K 倍加速",
+        "两个模型的显存要同时装下，显存紧张时是负担"
+      ],
+      "code": "投机解码的接受-拒绝采样（保证与原模型分布完全一致）：\n\n  1. 小模型 draft 模型贪心生成 γ 个候选 token\n  2. 大模型 target 模型对这 γ 个 token 做一次前向（并行验证）\n  3. 逐个比较：若第 i 个 token 与 d_i 一致 → 接受\n              若不一致 → 拒绝，改用 target 分布重新采样，并丢弃后续候选\n\n  期望接受长度 = 1 + α + α² + ... + α^(γ-1)   (α 为单 token 接受率)\n\n加速比 ≈ (1 + α + ... + α^(γ-1)) / γ\n\n举例（α=0.8, γ=5）：\n  期望接受长度 = 1 + 0.8 + 0.64 + 0.512 + 0.41 ≈ 3.36\n  加速比 ≈ 3.36 / 5 ≈ 0.67 —— 反而更慢！\n\n关键结论：\n  · γ 太大会拖慢（验证成本按 γ 增长）\n  · 太小又没收益\n  · 实际最优 γ 通常是 3–5，且高度依赖任务\n    （结构化输出/代码接受率高，开放生成接受率低）\n  · 这也是投机解码「不稳定」的根源：同样的 γ，\n    不同任务、不同请求的收益差异可能达到 2 倍以上"
+    },
+    {
+      "heading": "核心技术点",
+      "body": "<h3>1. 独立草稿模型（Lookahead / SpecInfer）</h3><p>用一个独立的小模型做草稿。最简单、通用性强，但两个模型的权重都要占显存，且需要两次模型加载的调度协调。</p><h3>2. EAGLE / EAGLE-2：特征层面的自投机</h3><p>核心洞察：<strong>不需要额外的小模型</strong>，而是用目标模型自身的隐藏状态来预测下一 token 的特征。</p><ul><li><strong>EAGLE-1</strong>：训练一个轻量「草稿头」，输入是上一层的 hidden state，预测下一 token 的表示</li><li><strong>EAGLE-2</strong>：直接预测「未来多个 token」的表示（而非一个），draft tree 更宽，接受率更高</li></ul><p>优势：只需额外一个很小的头（不占整模型显存），接受率显著高于朴素自投机。</p><h3>3. Medusa：多头预测</h3><p>在主干上加多个预测头，同时预测未来第 1、2、3…个 token，形成候选树。无需额外模型，训练简单。</p><h3>4. 投机解码的工程实现</h3><ul><li><strong>Tree Attention</strong>：验证阶段要并行处理一棵树（多个候选路径），需要定制 attention mask</li><li><strong>接受率是核心指标</strong>：直接决定加速比，应作为首要监控项</li><li><strong>温度敏感</strong>：temperature=0（贪心）时接受率最高；高温采样时接受率显著下降</li></ul><h3>5. 与量化的交互</h3><p>草稿模型与目标模型的量化方案需要匹配（如都为 INT4 group-wise），否则 logits 差异过大导致接受率崩塌。</p>",
+      "callout": {
+        "title": "什么时候值得用",
+        "body": "投机解码适合：单请求 batch 小（GPU 算力闲置）、延迟敏感、模型较大（草稿开销占比小）。不适合：高并发 batch 已满（此时没有空闲算力给草稿模型）、temperature 高、显存紧张。"
+      }
+    },
+    {
+      "heading": "实验效果",
+      "table": {
+        "headers": [
+          "方法",
+          "对比基线",
+          "设置",
+          "关键结果",
+          "出处"
+        ],
+        "rows": [
+          [
+            "投机解码（Leviathan et al.）",
+            "无投机",
+            "T5-XXL / ChatGPT 规模任务",
+            "2–3× 加速，输出分布严格无损",
+            "arXiv 2211.17192"
+          ],
+          [
+            "SpecInfer",
+            "独立草稿模型",
+            "多棵树并行 + token 池",
+            "2–3×，配合树状草稿可达更高接受率",
+            "arXiv 2305.09781"
+          ],
+          [
+            "EAGLE",
+            "Lookahead decoding",
+            "Llama-2 / Vicuna 7B-70B",
+            "平均 2.7–3.5× 加速（temperature=0）",
+            "arXiv 2401.15077 / 2406.16838"
+          ],
+          [
+            "EAGLE-2",
+            "EAGLE-1",
+            "Llama-3 / Vicuna",
+            "draft tree 优化使接受率提升，加速比进一步提升",
+            "arXiv 2406.16838"
+          ],
+          [
+            "Medusa",
+            "EAGLE",
+            "Llama / Vicuna 系列",
+            "训练更简单，加速比与 EAGLE 相近",
+            "arXiv 2401.10774"
+          ],
+          [
+            "REST（无需草稿模型）",
+            "EAGLE",
+            "基于检索的草稿",
+            "去掉草稿模型依赖，加速比接近 EAGLE",
+            "arXiv 2311.08252"
+          ],
+          [
+            "投机解码 + 量化",
+            "单独量化",
+            "Llama-2 / Vicuna",
+            "两者可叠加，但需匹配量化方案",
+            "vLLM / TensorRT-LLM 官方文档"
+          ]
+        ],
+        "caption": "注：加速比随模型、任务、temperature、batch size 变化很大；高并发场景收益会明显衰减"
+      }
+    },
+    {
+      "heading": "适用边界",
+      "body": "<ul><li><strong>高并发时收益衰减</strong>：batch 已经打满算力时，投机解码的额外计算无处可获，此时应关掉</li><li><strong>高温采样收益差</strong>：temperature 高时草稿与目标分歧大，接受率骤降</li><li><strong>草稿模型要额外显存</strong>：EAGLE 类方法缓解了这个问题，但独立草稿模型方案仍需额外空间</li><li><strong>接受率对领域敏感</strong>：结构化输出（代码、JSON）接受率高，开放式创意写作低</li><li><strong>实现复杂度不低</strong>：tree attention 需要自定义 kernel，不是所有引擎都支持得好</li><li><strong>spec-decode 与 prefix cache 需配合</strong>：草稿模型也要复用前缀缓存，否则额外开销吃掉收益</li></ul>",
+      "refs": [
+        {
+          "title": "Fast Inference from Transformers via Speculative Decoding",
+          "url": "https://arxiv.org/abs/2211.17192"
+        },
+        {
+          "title": "SpecInfer: Accelerating Generative LLM Serving with Tree-based Speculative Inference and Verification",
+          "url": "https://arxiv.org/abs/2305.09781"
+        },
+        {
+          "title": "EAGLE: Speculative Sampling Requires Rethinking Feature Uncertainty",
+          "url": "https://arxiv.org/abs/2401.15077"
+        },
+        {
+          "title": "EAGLE-2: Faster Inference of Language Models with Dynamic Draft Trees",
+          "url": "https://arxiv.org/abs/2406.16838"
+        },
+        {
+          "title": "Medusa: Simple LLM Inference Acceleration Framework with Multiple Decoding Heads",
+          "url": "https://arxiv.org/abs/2401.10774"
+        },
+        {
+          "title": "REST: Retrieval-Based Speculative Decoding",
+          "url": "https://arxiv.org/abs/2311.08252"
+        }
+      ]
+    }
+  ]
+}

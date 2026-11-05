@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+{% set active_slug = 'news' %}
+{% block title %}每日动态 · 大模型综述{% endblock %}
+
+{% block content %}
+<div class="page news-page">
+
+  <header class="page-head">
+    <div class="head-left">
+      <h1 class="page-title">📰 每日动态</h1>
+      <p class="page-summary">
+        每日 03:00 自动同步大模型领域的最新论文与新闻，<strong>译文附原文链接</strong>。
+        命中技术点关键词的内容还会<strong>合并进对应模块页</strong>，保持综述与时俱进。
+      </p>
+      <div class="page-meta">
+        共 {{ dates | length }} 期 · {{ total }} 条 · 保留 30 天
+      </div>
+    </div>
+  </header>
+
+  {% if not entries %}
+    <div class="empty-hint">
+      暂无动态。每日 03:00 的同步任务会自动写入。
+    </div>
+  {% else %}
+    <!-- 日期归档列表 -->
+    <div class="news-archive">
+      {% for e in entries %}
+        <section class="news-day">
+          <div class="news-day-head">
+            <a class="news-date" href="{{ script_name }}/news/{{ e.date }}">{{ e.date }}</a>
+            <span class="news-count">{{ e['items'] | length }} 条</span>
+          </div>
+          <ul class="news-list">
+            {% for it in e['items'] %}
+              <li class="news-item">
+                <div class="news-title">
+                  <a href="{{ it.url }}" target="_blank" rel="noopener">{{ it.title_zh }}</a>
+                </div>
+                <div class="news-meta">
+                  <span class="tag tag-src">{{ it.source }}</span>
+                  {% if it.merged_into %}
+                    <span class="tag tag-merge">已合并进 {{ it.topics[0].title if it.topics else '' }}</span>
+                  {% endif %}
+                  {% if it.topics %}
+                    {% for t in it.topics[:3] %}
+                      <span class="tag">{{ t.title }}</span>
+                    {% endfor %}
+                  {% endif %}
+                </div>
+                <div class="news-en">{{ it.title_en }}</div>
+              </li>
+            {% endfor %}
+          </ul>
+        </section>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+</div>
+{% endblock %}

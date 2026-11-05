@@ -1,0 +1,54 @@
+{
+  "title": "预训练架构设计",
+  "summary": "Decoder-only 是当前共识，但共识形成的过程有明确实证依据；归一化、位置编码、Attention 变体是真正影响细节的三个杠杆。",
+  "updated_at": "2026-11-05",
+  "sections": [
+    {
+      "heading": "架构选型：为什么是 Decoder-only",
+      "tldr": "微软的实证研究（Exploring the Limits of Transfer Learning）表明，在相同参数规模下，Decoder-only 在 zero-shot 泛化上优于 Encoder-Decoder 和 Encoder-only；加上「预训练 + 微调」的统一范式，Decoder-only 成为事实标准。",
+      "body": "<p>主流架构谱系：</p><ul><li><strong>Encoder-only</strong>（BERT）：双向编码，擅长理解类任务；<strong>Decoder-only</strong>（GPT 系）：因果自回归，擅长生成；<strong>Encoder-Decoder</strong>（T5/BART）：seq2seq。</li></ul><p>Decoder-only 胜出的三个原因：</p><ul><li><strong>zero-shot 泛化能力更强</strong>：因果预训练让模型天然学会「续写」，可直接 zero-shot 完成任务</li><li><strong>训练效率</strong>：同样的算力预算下，decoder-only 在多数 zero-shot 基准上得分更高</li><li><strong>生态统一</strong>：预训练 + SFT/RLHF 的单一范式，避免为不同任务改架构</li></ul>",
+      "callout": {
+        "title": "注意",
+        "body": "这是「在给定预算下的经验结论」而非理论定论。Encoder-only 在分类、检索等密集理解任务上仍有成本优势，小模型/低延迟场景偶尔仍有价值。"
+      }
+    },
+    {
+      "heading": "核心技术点",
+      "body": "<h3>1. 归一化（Normalization）</h3><p><strong>RMSNorm</strong> 去掉了均值中心化，只做缩放，计算量更低、效果相当，已成为主流选择（T5 的 RMSNorm、LLaMA 系列均采用）。<strong>Pre-LN vs Post-LN</strong>：Post-LN（原 Transformer）在深层网络里训练不稳定，Pre-LN（层归一化放在子层前）梯度更稳，是现代 LLM 的标准做法。</p><h3>2. 位置编码（Positional Encoding）</h3><p>绝对位置 → 可学习 → <strong>RoPE</strong>（旋转位置编码）→ <strong>ALiBi</strong>（线性注意力偏置）。RoPE 通过对 Q/K 做位置相关的旋转变换，把相对位置信息注入注意力，是当前主流（Llama/Qwen/Mistral 均用）。ALiBi 则直接给注意力分数加线性偏置，外推能力好但表达能力受限。</p><h3>3. 激活函数</h3><p>GELU → <strong>SwiGLU</strong>（Llama 系列）/ <strong>GeGLU</strong>（Mistral）。代价是要额外投影矩阵、参数略增，但训练稳定性与效果都更好。</p><h3>4. Attention 变体</h3><ul><li><strong>MHA</strong>（多头）→ <strong>MQA</strong>（多查询，1 组共享 K/V）→ <strong>GQA</strong>（分组查询，几组共享 K/V）：GQA 是当前平衡点，MQA 省 KV cache 但效果损失大</li><li><strong>MLA</strong>（Multi-head Latent Attention，DeepSeek-V2/V3）：把 K/V 低秩压缩到 latent 空间再上投影，比 GQA 更省 KV cache 且效果更好</li></ul><h3>5. MoE（稀疏专家）</h3><p>详见「架构专题 → MoE 混合专家」。核心是用稀疏激活在参数量与计算量解耦。</p>",
+      "points": [
+        "现代 LLM 的标准配方：Decoder-only + Pre-LN + RMSNorm + RoPE + SwiGLU + GQA/MLA",
+        "这些组件的单独收益都不大，但组合起来构成了稳定可复现的训练基线",
+        "换组件前先确认基线配方，通常跟随主流开源模型的稳定配置更安全"
+      ]
+    },
+    {
+      "heading": "实验效果",
+      "table": {
+        "headers": ["工作 / 组件", "对比基线", "数据集 / 规模", "关键结果", "出处"],
+        "rows": [
+          ["Decoder-only 架构选型", "Encoder-Decoder / Encoder-only", "约 1.5B 参数，多任务 zero-shot", "Decoder-only 在 zero-shot 迁移上整体占优", "arXiv 2010.11929"],
+          ["RMSNorm", "LayerNorm", "多种模型规模", "效果持平，计算量下降，效果等价", "arXiv 1910.01167"],
+          ["RoPE", "绝对位置编码 / ALiBi", "LLaMA 系列", "外推长度可通过位置插值扩展，效果更优", "arXiv 2104.09864"],
+          ["SwiGLU / GEGLU", "ReLU / GELU 前馈", "等参数量", "同等 loss 下收敛更快，主流模型全面采用", "arXiv 2002.05202"],
+          ["GQA", "MHA / MQA", "LLaMA-2 7B/13B/70B", "KV cache 显著减小，吞吐提升，质量基本无损", "arXiv 2305.13245"],
+          ["MLA", "GQA", "DeepSeek-V2", "KV cache 降低 93.3%，训练成本降至 1/3", "arXiv 2405.04434"],
+          ["Pre-LN vs Post-LN", "原版 Transformer", "深层 Transformer", "Pre-LN 深层训练更稳定，无需 warmup 精细调参", "arXiv 2002.04745"]
+        ],
+        "caption": "注：MLA 的 KV cache 降幅为其论文中相对 GQA 的报告值，随序列长度与实现而变"
+      }
+    },
+    {
+      "heading": "适用边界",
+      "body": "<ul><li><strong>ALiBi vs RoPE</strong>：需要超长上下文（千万 token 级）且接受表达力损失时 ALiBi 仍有竞争力；常规 4K–128K 场景 RoPE 全面占优</li><li><strong>MQA</strong>：在极小 batch 或长上下文生成场景下，MQA 的质量损失会被放大，优先选 GQA</li><li><strong>位置编码外推</strong>：RoPE 的长度外推必须配合插值方法（NTK/YaRN），直接外推会在长文本上彻底崩坏</li><li><strong>MoE 并非万能</strong>：训练需要更多显存用于专家并行与负载均衡，部署时推理成本优势也不如论文数字直观</li></ul>",
+      "refs": [
+        {"title": "Exploring the Limits of Transfer Learning with a Unified Text-to-Text Transformer", "url": "https://arxiv.org/abs/2010.11929"},
+        {"title": "Root Mean Square Layer Normalization (RMSNorm)", "url": "https://arxiv.org/abs/1910.01167"},
+        {"title": "RoFormer: Enhanced Transformer with Rotary Position Embedding", "url": "https://arxiv.org/abs/2104.09864"},
+        {"title": "GLU Variants Improve Transformer", "url": "https://arxiv.org/abs/2002.05202"},
+        {"title": "GQA: Training Generalized Multi-Query Transformer Models", "url": "https://arxiv.org/abs/2305.13245"},
+        {"title": "DeepSeek-V2: A Strong, Economical, and Efficient Mixture-of-Experts Language Model", "url": "https://arxiv.org/abs/2405.04434"},
+        {"title": "On Layer Normalization in the Transformer Architecture (Pre-LN 分析)", "url": "https://arxiv.org/abs/2002.04745"}
+      ]
+    }
+  ]
+}

@@ -1,0 +1,40 @@
+{
+  "title": "后训练总览",
+  "summary": "后训练把 base 模型变成可用助手——SFT 定格式，偏好对齐定风格与安全，RL 提升推理，Agent 训练扩展能力边界。",
+  "updated_at": "2026-11-05",
+  "sections": [
+    {
+      "heading": "后训练的四个层次",
+      "tldr": "① SFT 教「怎么回答」→ ② 偏好对齐教「答得好不好」→ ③ RL 教「答得更准」→ ④ Agent 训练教「用工具做事」。四者可以叠加，但收益递减顺序递减、成本递增顺序递增。",
+      "body": "<table><tr><th>层次</th><th>解决什么</th><th>核心方法</th><th>成本</th></tr><tr><td>SFT</td><td>格式与指令跟随</td><td>指令数据微调</td><td>低</td></tr><tr><td>偏好对齐</td><td>风格、安全、拒答</td><td>DPO / RLHF</td><td>中</td></tr><tr><td>RL</td><td>推理正确率</td><td>GRPO + RLVR</td><td>高</td></tr><tr><td>Agent 训练</td><td>工具使用、多步任务</td><td>轨迹蒸馏 + Agentic RL</td><td>很高</td></tr></table><p>实践中的典型组合：<strong>SFT → DPO → (必要时) RL</strong>。多数团队跳过 RL，因为成本高且只对可验证任务有效。</p>",
+      "points": [
+        "SFT 注入行为，不注入知识——事实错误要找预训练或 RAG 解决",
+        "偏好对齐不会提升推理正确率，那是 RL 的战场",
+        "RL 的收益上限由 pass@k 决定，模型压根不会的题救不回来"
+      ]
+    },
+    {
+      "heading": "技术选型决策表",
+      "table": {
+        "headers": ["目标", "推荐方案", "理由", "详见"],
+        "rows": [
+          ["指令跟随 + 格式控制", "SFT（1K–10K 精标）", "数据质量 >> 数据数量", "SFT 与指令数据"],
+          ["风格 / 安全 / 拒答", "DPO 或 SimPO", "离线、稳定、无需 reward model", "偏好对齐"],
+          ["数学 / 代码推理", "GRPO + RLVR", "可验证奖励，无偏且便宜", "强化学习算法"],
+          ["复杂推理 + 通用能力兼顾", "SFT 冷启动 + 多阶段 RL", "纯 RL 输出可读性差，需 SFT 修复", "强化学习算法"],
+          ["工具调用 / 多步任务", "轨迹蒸馏 SFT + Agentic RL", "需环境交互，样本昂贵", "Agent 与工具调用训练"],
+          ["评测与回归", "动态基准 + 人工抽检 judge", "静态基准会饱和会污染", "评测体系"]
+        ],
+        "caption": "成本从低到高：SFT << DPO < RL << Agentic RL"
+      }
+    },
+    {
+      "heading": "几个反直觉的经验",
+      "body": "<ul><li><strong>更多偏好数据不如更干净的偏好数据</strong>：偏好数据过千条后，收益主要来自质量而非数量</li><li><strong>DPO 在很多场景下够用</strong>：很多人低估了 DPO 的效果，高估了 RL 的必要性——先试 DPO 是稳妥选择</li><li><strong>RL 的成本被严重低估</strong>：rollout 生成占 RL 总成本的 90%+，不是训练本身</li><li><strong>评测是后训练里最脆弱的环节</strong>：judge 偏差、benchmark 污染会让人对效果产生系统性误判</li><li><strong>输出格式坍缩</strong>：纯 RL 训练后模型输出会变得冗长难读，需要 SFT 或格式约束修复</li></ul>",
+      "callout": {
+        "title": "落地路线建议",
+        "body": "① 先用 SFT 把格式和基础指令跟随做好 → ② 用 DPO 调风格和安全 → ③ 建立自己的评测集（50–200 条业务样本）→ ④ 只有当评测显示推理是瓶颈时，才投入 RL → ⑤ 有工具需求再做 Agent 训练，别一步到位。"
+      }
+    }
+  ]
+}

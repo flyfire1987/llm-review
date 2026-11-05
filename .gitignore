@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.venv/
+venv/
+
+# 自动同步的每日动态（流水，保留 30 天，不进版本库）
+content/news/
+
+# 本地状态
+data/seen.json
+*.log
+
+# 编辑器 / 系统
+.vscode/
+.idea/
+.DS_Store

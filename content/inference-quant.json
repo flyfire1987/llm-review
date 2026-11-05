@@ -1,0 +1,131 @@
+{
+  "title": "量化与算子优化",
+  "summary": "量化是推理降本的最直接手段——INT8/FP8 几乎无损，INT4 需要注意量化粒度与 outlier 处理，选错方案掉点会很明显。",
+  "updated_at": "2026-11-02",
+  "sections": [
+    {
+      "heading": "量化基础",
+      "tldr": "把权重和激活从 FP16/BF16 压到更低位宽，换取显存与带宽节省。收益几乎全部来自 decode 阶段的访存量减少；精度损失主要取决于「哪些 outlier 被保护」。",
+      "body": "<p>量化的收益来源与 KV cache 优化同源：decode 是访存瓶颈，权重从 16bit 压到 4bit，读一遍的速度快 4 倍，显存占用也降 4 倍。</p><p>按粒度分类：</p><ul><li><strong>Per-tensor</strong>：整个张量一个 scale，最简单，精度最差</li><li><strong>Per-channel / Per-output-channel</strong>：每个输出通道一个 scale，权重量化的主流选择</li><li><strong>Per-group</strong>：组内共享 scale（group size 常取 128），精度显著更好，是 GPTQ/AWQ 的标准做法</li></ul><p>数据类型：<strong>INT8</strong>（通用、几乎无损）、<strong>FP8</strong>（E4M3 / E5M2，Hopper 起有原生支持）、<strong>INT4</strong>（激进，收益最大）、<strong>NVFP4 / MXFP4</strong>（Blackwell 新格式，细粒度 FP4 缩放）。</p>",
+      "points": [
+        "权重量化是基础，激活量化收益更大但更难做对",
+        "SmoothQuant 的核心洞察：激活中的 outlier 通道是精度损失主因，把量化难度从激活迁移到权重上"
+      ],
+      "code": "量化的基本公式：\n\n  量化:   x̂ = scale · (round(x / scale) - zero_point)\n  反量化: x̂_hat = scale · (x_int + zero_point)\n\n  scale = (max - min) / (2^b - 1)     b = 量化位宽 (4/8/16)\n\n误差来源（相对误差）：\n  绝对误差 ≤ scale/2 = (max-min) / (2^(b+1) - 2)\n\n  INT8 (b=8): 误差 ≈ 范围的 1/510\n  INT4 (b=4): 误差 ≈ 范围的 1/30   ← 约 17 倍于 INT8\n\n关键结论：\n  · 误差与「该张量的动态范围」直接相关\n  · 所以 outlier（少数极大值）会毁掉量化精度\n  · 这正是 AWQ / GPTQ 要解决的问题：把 outlier 挑出来单独处理\n\n  AWQ 思路：按激活幅值的重要性保护少数「 salient weight channel」\n  GPTQ 思路：逐层用 Hessian 信息做误差补偿，量化后反推调整剩余权重\n\n两种粒度：\n  per-tensor  : 整个张量一个 scale → 快，但精度差\n  per-channel : 每个输出通道一个 scale → 精度好，主流做法"
+    },
+    {
+      "heading": "核心技术点",
+      "body": "<h3>1. 训练后量化（PTQ）主流方案</h3><ul><li><strong>GPTQ</strong>：基于二阶信息（Fisher/Hessian）逐列量化并补偿误差，一层权重一次校准。简洁、效果好，是默认选择</li><li><strong>AWQ</strong>：识别权重中「重要通道」（激活幅度大的），用 per-channel scale 保护它们不量化，而不是只保护权重值大的通道。关键洞察是<strong>激活的 outlier 才是问题根源</strong></li><li><strong>SmoothQuant</strong>：把激活的量化难度「平滑」迁移到权重，公式为 <code>ŷ = (X · S⁻¹) ⊙ (W · S)</code>，让激活分布更均衡</li><li><strong>GPTQModel / AutoRound</strong>：AutoRound 采用「学习式舍入」进一步优化，在 INT4 上接近 FP16</li></ul><h3>2. 量化感知训练（QAT）</h3><p>在训练中模拟量化误差（Straight-Through Estimator），精度最好但需要重训，成本高。适合对精度要求极高且模型较小的场景。</p><h3>3. FP8 的优势</h3><p>Hopper 起有原生 FP8 Tensor Core 支持，无需反量化，中间计算也在 FP8 做，无需频繁转 FP16。相比 INT8 + zero-point 的复杂处理，FP8 实现路径更干净，是新硬件上的优选。</p><h3>4. 算子融合</h3><ul><li><strong>FlashAttention</strong>：见「KV Cache 与内存优化」页</li><li><strong>算子融合</strong>：把 RMSNorm、RoPE、量化/dequant 等小算子合并进相邻的大 GEMM，减少 HBM 往返。量化场景下尤其重要——dequant 融合进 GEMM 能避免中间张量落显存</li></ul><h3>5. 其他推理加速</h3><ul><li><strong>CUDA Graph</strong>：消除小 kernel 的 launch 开销，decode 阶段 kernel 小而多，launch 开销占比高，CUDA Graph 收益明显</li><li><strong>Continuous batching + 量化</strong>：两者互补，量化降低单请求资源占用，continuous batching 提高整体利用率</li></ul>",
+      "callout": {
+        "title": "选型建议",
+        "body": "· 精度敏感（代码、数学、长文本）→ FP8 或 INT8，避开 INT4<br>· 成本敏感（高并发在线）→ INT4 + AWQ/GPTQ，并实测质量<br>· 小模型（<7B）→ 量化损失相对更大，收益相对更小，谨慎<br>· 务必在<strong>自己的业务评测集</strong>上对比 FP16 与量化版，别只看公开榜单"
+      }
+    },
+    {
+      "heading": "实验效果",
+      "table": {
+        "headers": [
+          "技术",
+          "对比基线",
+          "设置",
+          "关键结果",
+          "出处"
+        ],
+        "rows": [
+          [
+            "GPTQ (INT4)",
+            "FP16",
+            "Llama-2-7B/13B/70B, OPT",
+            "显存降约 3–4×，困惑度损失 <0.1，3–4× 加速",
+            "arXiv 2210.17323"
+          ],
+          [
+            "AWQ (INT4)",
+            "GPTQ",
+            "Llama 系列多任务",
+            "量化后精度接近 FP16，推理速度约 3×",
+            "arXiv 2306.00978"
+          ],
+          [
+            "SmoothQuant (INT8/W8A8)",
+            "逐层量化 / W8A16",
+            "Llama / OPT / Falcon",
+            "W8A8 精度接近 FP16，延迟最高降 1.56×",
+            "arXiv 2211.10438"
+          ],
+          [
+            "AutoRound (INT4)",
+            "GPTQ / AWQ",
+            "Llama-2/3 等",
+            "学习式舍入使 INT4 精度最接近 FP16",
+            "arXiv 2309.05516"
+          ],
+          [
+            "FP8 (E4M3/E5M2)",
+            "FP16 / INT8",
+            "Hopper GPU",
+            "原生支持，无反量化开销，精度损失小",
+            "arXiv 2209.05433"
+          ],
+          [
+            "FlashAttention-2",
+            "标准 Attention",
+            "A100/H100",
+            "同精度下约 2× 吞吐，长序列优势更大",
+            "arXiv 2307.08691"
+          ],
+          [
+            "NVFP4 (Blackwell)",
+            "INT4",
+            "B200",
+            "细粒度 FP4 缩放，精度优于 INT4，吞吐更高",
+            "arXiv 2412.21753"
+          ]
+        ],
+        "caption": "注：加速倍数受 GPU 型号、batch size、模型规模影响明显，跨硬件不可直接对比"
+      }
+    },
+    {
+      "heading": "适用边界",
+      "body": "<ul><li><strong>量化对长文本生成的影响大于短文本</strong>：误差会随生成步数累积，long-form 场景务必实测</li><li><strong>INT4 在小模型上掉点明显</strong>：模型容量小，量化误差无法被后续层吸收</li><li><strong>MoE 模型量化更复杂</strong>：不同专家的激活分布差异大，需要分组量化或专家级 scale</li><li><strong>量化 + 投机解码组合有坑</strong>：草稿模型与目标模型量化程度需匹配，否则接受率骤降</li><li><strong>量化不减少 TTFT 太多</strong>：prefill 是算力瓶颈，主要收益在 decode 阶段</li><li><strong>硬件支持决定上限</strong>：没有 FP8 原生支持的 GPU（Hopper 前），FP8 会被模拟成 INT8 算子，反而更慢</li></ul>",
+      "refs": [
+        {
+          "title": "GPTQ: Accurate Post-Training Quantization for Generative Pre-trained LLMs",
+          "url": "https://arxiv.org/abs/2210.17323"
+        },
+        {
+          "title": "AWQ: Activation-aware Weight Quantization for LLM Compression and Acceleration",
+          "url": "https://arxiv.org/abs/2306.00978"
+        },
+        {
+          "title": "SmoothQuant: Accurate and Efficient Post-Training Quantization for LLMs",
+          "url": "https://arxiv.org/abs/2211.10438"
+        },
+        {
+          "title": "AutoRound: Automatic Weight Round-Off for LLM Compression",
+          "url": "https://arxiv.org/abs/2309.05516"
+        },
+        {
+          "title": "FP8 Formats for Deep Learning",
+          "url": "https://arxiv.org/abs/2209.05433"
+        },
+        {
+          "title": "FlashAttention-2",
+          "url": "https://arxiv.org/abs/2307.08691"
+        },
+        {
+          "title": "Optimizing Large Language Model Inference Using FP4 Quantization",
+          "url": "https://arxiv.org/abs/2412.21753"
+        }
+      ]
+    },
+    {
+      "heading": "📌 最新进展",
+      "tldr": "自动同步的技术动态（每日 03:00 任务写入），随领域进展更新。",
+      "body": "<p>以下条目由每日同步任务自动追加，按时间倒序排列，<strong>原文链接</strong>可直达原论文/原文。</p>",
+      "points": [
+        "[2026-11-02] **EpiLoRA ：将许多LoRA适配器融合到用于服务的低精度GEMM和RL中**（arXiv）— Low-rank adapters (LoRA) let one base model serve many fine-tuned variants: multi-tenant engines keep a single copy of the base and batch the requests of many t 原文：http://arxiv.org/abs/2611.03899"
+      ]
+    }
+  ]
+}

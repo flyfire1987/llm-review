@@ -1,0 +1,200 @@
+{
+  "title": "主流模型参数对比",
+  "summary": "一张表看清主流模型的规模、上下文、架构与许可证——参数不再是主要区分维度，许可证和部署成本往往更关键。",
+  "updated_at": "2026-11-04",
+  "sections": [
+    {
+      "heading": "怎么看这张表",
+      "tldr": "开源模型的参数规模在 2023–2025 年间从 7B 涨到 671B，但<strong>激活参数</strong>更能反映推理成本；上下文长度普遍宣称的 128K–1M 需实测验证；许可证的差异往往比能力差异更影响落地。",
+      "body": "<p>读表要点：</p><ul><li><strong>总参数 vs 激活参数</strong>：MoE 模型总参数大但激活小，推理算力取决于激活参数，显存取决于总参数</li><li><strong>上下文长度</strong>：标称值通常基于特定测试（needle-in-a-haystack），实际可用长度常明显更短</li><li><strong>许可证</strong>：MIT / Apache-2.0 最宽松；Llama 系列有额外条件（700M MAU 需申请商用授权）；部分模型有「蒸馏竞品」限制条款</li><li><strong>基准分数</strong>：务必确认评测时是否启用了 CoT / 工具，thinking 模型与 instruct 模型不可直接比</li></ul>",
+      "callout": {
+        "title": "选型提醒",
+        "body": "这张表用于建立量级感知，不要用它做最终决策。同一模型在不同推理框架、量化方案、提示策略下表现差异可能超过表里两个模型的差距。真实选型必须用自己的业务测试集跑一遍。"
+      }
+    },
+    {
+      "heading": "主要开源模型",
+      "body": "<p>下表列出各阶段有代表性的开源模型，用于理解规模与架构演进趋势：</p>",
+      "table": {
+        "headers": [
+          "模型",
+          "总参数",
+          "激活参数",
+          "架构",
+          "上下文",
+          "训练 token",
+          "许可证",
+          "发布"
+        ],
+        "rows": [
+          [
+            "Llama-2-7B",
+            "7B",
+            "7B",
+            "Dense + GQA",
+            "4K",
+            "2T",
+            "Llama 2 社区许可",
+            "2023-07"
+          ],
+          [
+            "Llama-2-70B",
+            "70B",
+            "70B",
+            "Dense + GQA",
+            "4K",
+            "2T",
+            "Llama 2 社区许可",
+            "2023-07"
+          ],
+          [
+            "Mistral 7B",
+            "7B",
+            "7B",
+            "Dense + GQA + SWA",
+            "8K→32K",
+            "—",
+            "Apache-2.0",
+            "2023-10"
+          ],
+          [
+            "Mixtral 8x7B",
+            "46.7B",
+            "12.9B",
+            "MoE 8×7B + GQA",
+            "32K",
+            "—",
+            "Apache-2.0",
+            "2023-12"
+          ],
+          [
+            "Qwen2.5-72B",
+            "72B",
+            "72B",
+            "Dense + GQA",
+            "128K",
+            "18T",
+            "Apache-2.0",
+            "2024-09"
+          ],
+          [
+            "DeepSeek-V2",
+            "236B",
+            "21B",
+            "MoE + MLA",
+            "128K",
+            "—",
+            "DeepSeek 许可",
+            "2024-05"
+          ],
+          [
+            "DeepSeek-V3",
+            "671B",
+            "37B",
+            "MoE 256 专家 + MLA",
+            "128K",
+            "14.8T",
+            "DeepSeek 许可",
+            "2024-12"
+          ],
+          [
+            "Llama-3.1-405B",
+            "405B",
+            "405B",
+            "Dense + GQA",
+            "128K",
+            "15T+",
+            "Llama 3.1 社区许可",
+            "2024-07"
+          ],
+          [
+            "Qwen3-235B-A22B",
+            "235B",
+            "22B",
+            "MoE + MLA",
+            "128K",
+            "—",
+            "Apache-2.0",
+            "2025-04"
+          ]
+        ],
+        "caption": "注：数据来自各模型技术报告与官方模型卡；训练 token 为官方披露值，部分未公开"
+      }
+    },
+    {
+      "heading": "架构演进趋势",
+      "body": "<ul><li><strong>2023</strong>：Dense + GQA 成为主流，7B–70B 区间密集，指令微调普及</li><li><strong>2024</strong>：MoE + MLA 组合出现（DeepSeek-V2/V3），长上下文普遍到 128K，推理时 scaling 成为新战场</li><li><strong>2025</strong>：混合推理模式（thinking / non-thinking 可切换）成为标配，激活参数与总参数的比值拉大</li><li><strong>开源与闭源的能力差距收窄</strong>：开源模型在代码与数学推理上已接近甚至超过部分闭源模型，但在长链推理、Agent 稳定性、多模态实时性上仍有差距</li></ul>",
+      "table": {
+        "headers": [
+          "维度",
+          "2023 状态",
+          "2024 状态",
+          "2025 状态"
+        ],
+        "rows": [
+          [
+            "主流架构",
+            "Dense + GQA",
+            "MoE + MLA 兴起",
+            "MoE 细化（细粒度专家）"
+          ],
+          [
+            "上下文",
+            "2K–4K",
+            "32K–128K 普及",
+            "128K 标准，长文本应用铺开"
+          ],
+          [
+            "推理能力来源",
+            "SFT + 少量 CoT 数据",
+            "推理模型 + RL 训练",
+            "混合推理 + 可调思考预算"
+          ],
+          [
+            "推理部署优化",
+            "FP16 + batching",
+            "PagedAttention + FP8",
+            "投机解码 + 细粒度量化 + PD 分离"
+          ],
+          [
+            "许可证",
+            "多为宽松开源",
+            "Llama 自定义许可成为主流",
+            "Apache-2.0 与自定义许可并存"
+          ]
+        ],
+        "caption": "趋势概括基于公开论文与模型卡，具体时间点各团队略有差异"
+      }
+    },
+    {
+      "heading": "选型决策清单",
+      "body": "<ol><li><strong>许可证先过一遍</strong>：商用限制、用户规模限制、竞品限制，会直接否决方案</li><li><strong>硬件匹配</strong>：MoE 模型总参数决定显存门槛，671B 模型需要多卡 80G；稠密 7B 单卡可行</li><li><strong>推理预算倒推模型大小</strong>：先算并发量和延迟 SLA，再定模型规模</li><li><strong>业务场景匹配</strong>：RAG 问答 → 小模型足够；复杂代码生成 → 需要大模型或 Agent 框架</li><li><strong>用自己的 50 条测试集实测</strong>：这一步比任何榜单都有价值</li></ol>",
+      "refs": [
+        {
+          "title": "Llama 3.1 模型卡（Hugging Face）",
+          "url": "https://huggingface.co/meta-llama/Llama-3.1-405B"
+        },
+        {
+          "title": "Qwen3 技术报告",
+          "url": "https://arxiv.org/abs/2505.09388"
+        },
+        {
+          "title": "DeepSeek-V3 Technical Report",
+          "url": "https://arxiv.org/abs/2412.19437"
+        },
+        {
+          "title": "Mixtral of Experts",
+          "url": "https://arxiv.org/abs/2401.04088"
+        }
+      ]
+    },
+    {
+      "heading": "📌 最新进展",
+      "tldr": "自动同步的技术动态（每日 03:00 任务写入），随领域进展更新。",
+      "body": "<p>以下条目由每日同步任务自动追加，按时间倒序排列，<strong>原文链接</strong>可直达原论文/原文。</p>",
+      "points": [
+        "[2026-11-04] **将整数网格转换为空间直觉：感知，而不是规划，管理ARC-AGI-3**（arXiv）— Sample-efficient fluid intelligence requires agents that rapidly form working models of unfamiliar interactive environments. ARC-AGI-3 tests this across uninstr 原文：http://arxiv.org/abs/2611.06793"
+      ]
+    }
+  ]
+}

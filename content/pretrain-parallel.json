@@ -1,0 +1,113 @@
+{
+  "title": "并行策略与训练效率",
+  "summary": "并行策略没有唯一最优解——选择取决于模型形状、集群规模和通信拓扑。DeepSpeed、Megatron、FSDP 是三大主流实现路线。",
+  "updated_at": "2026-11-05",
+  "sections": [
+    {
+      "heading": "五种并行维度",
+      "tldr": "数据并行（DP）切数据、张量并行（TP）切单层权重、流水线并行（PP）切层、序列并行（SP）切激活、专家并行（EP）切 MoE 专家。前三者解决稠密模型，后两个分别解决长序列和稀疏模型。",
+      "body": "<ul><li><strong>数据并行 (DP)</strong>：每卡存完整模型，切分数据。显存瓶颈在优化器状态与激活</li><li><strong>张量并行 (TP)</strong>：把单层权重矩阵按行/列切到多卡，每层需要 all-reduce。通信量大但延迟敏感，通常限制在单机内（NVLink）</li><li><strong>流水线并行 (PP)</strong>：把模型按层切成若干段，不同段在不同设备上。存在「流水线气泡」，靠 micro-batch 填充</li><li><strong>序列并行 (SP)</strong>：沿序列维度切分激活，配合 TP 使用，减少 LayerNorm/Dropout 部分激活的冗余存储</li><li><strong>专家并行 (EP)</strong>：MoE 专用，把不同专家分布到不同卡</li></ul><p><strong>组合原则</strong>：TP 放在节点内（NVLink 带宽高），PP 跨节点（带宽低但可容忍），DP 放最外层（梯度同步用 ZeRO 优化）。</p>",
+      "points": [
+        "TP 通信在每层前向/反向都要发生，对延迟极敏感，跨节点通常得不偿失",
+        "PP 的气泡占比 ≈ (P-1)/(M+P-1)，M 为 micro-batch 数——micro-batch 太少会浪费大量算力",
+        "SP 通常与 TP 一起开启，是 Modern Megatron 的标准配置"
+      ],
+      "code": "训练并行五种维度的切分方式：\n\n  数据并行 DP    : 切数据，模型副本各算一份 → 通信最少\n  张量并行 TP    : 切矩阵（行/列），同层跨卡计算 → 需 AllReduce\n  流水线并行 PP  : 切层，层间串行 → 需点对点传激活\n  专家并行 EP    : 切专家（MoE 专用），token 需路由到对应卡\n  序列并行 SP    : 切序列维度（常与 TP 组合，省激活值显存）\n\n并行度公式：\n  总卡数 = DP × TP × PP × EP\n\n通信量对比（每层，每步）：\n  DP   : 梯度 AllReduce，      ~2 × 参数量 × 通信带宽\n  TP   : 每层 2 次 AllReduce，  ~2 × 激活量 × 通信带宽\n  PP   : 激活点对点，          ~激活量 × 通信带宽\n\n实践规律：\n  · 优先把 TP 放在节点内（NVLink 快），PP 跨节点\n  · DP 放在最外层，梯度 AllReduce 可以与反向计算重叠\n  · 典型配置：TP=8（节点内 8 卡）× PP=N（跨节点）× DP=M\n  · ZDDP/FSDP 在 DP 维度上进一步切分状态，省显存但增加通信"
+    },
+    {
+      "heading": "核心技术点",
+      "body": "<h3>1. 流水线调度：GPipe vs 1F1B</h3><p><strong>GPipe</strong>：全部 forward 后再全部 backward。优点是每卡显存占用峰值低（只需存一份激活），缺点是气泡多、必须等全部 forward 完成才能开始 backward。</p><p><strong>1F1B</strong>（PipeDream-Flush）：交错执行 forward 和 backward，把 bubble 降到接近 (P-1)/M，同时通过重计算控制显存。已成为事实标准（Megatron-LM 默认）。</p><p><strong>Interleaved 1F1B</strong>（virtual pipeline stages）：每卡负责多个不连续虚拟段，进一步压缩气泡，代价是通信次数增加。</p><h3>2. ZeRO 与 FSDP</h3><p>传统 DP 每卡都要存完整优化器状态（Adam 的 fp32 一阶/二阶动量，约为参数量的 12 倍）。ZeRO 分三个阶段切分：</p><ul><li><strong>ZeRO-1</strong>：切优化器状态 → 显存降 4×（fp16 Adam）</li><li><strong>ZeRO-2</strong>：+ 切梯度 → 降 8×</li><li><strong>ZeRO-3</strong>：+ 切参数（运行时按需 all-gather）→ 降 ~N 倍，N 为卡数</li></ul><p><strong>FSDP</strong>（PyTorch 原生）思路类似 ZeRO-3，区别在于参数在 forward/backward 前后按需 all-gather。ZeRO-3 的通信量最大，对网络带宽敏感。</p><h3>3. 激活重计算（Activation Checkpointing）</h3><p>用「丢弃中间激活、backward 时重算」换取显存。梯度检查点只对部分层生效，最优策略是对算力密集、显存便宜的层少存激活（反向策略），对显存贵的层多存。</p><h3>4. MoE 的专家并行</h3><p>需要处理 All-to-All 通信与<strong>负载不均衡</strong>：热门专家过载会拖慢整个 step。DeepSeek-V3 引入<strong>辅助负载均衡损失 + device-limited routing + 双向流水线</strong>，并用 DualPipe 重叠计算与通信。</p>",
+      "callout": {
+        "title": "选型速查",
+        "body": "· 单机多卡、模型能放下 → 优先 ZeRO-2/FSDP，简单且通信少<br>· 单机放不下 → FSDP + Activation Checkpointing<br>· 模型本身大于单机显存且要打满带宽 → TP（节点内）+ PP（跨节点）<br>· MoE → 一定要用 EP + 细粒度专家，且必须处理负载均衡"
+      }
+    },
+    {
+      "heading": "实验效果",
+      "table": {
+        "headers": [
+          "技术",
+          "对比基线",
+          "设置",
+          "关键结果",
+          "出处"
+        ],
+        "rows": [
+          [
+            "ZeRO-3",
+            "DeepSpeed 常规 DP",
+            "1024 卡，训练 1T token",
+            "显存优化 32×，可达 10× 并行扩展性",
+            "arXiv 1910.02054"
+          ],
+          [
+            "FSDP",
+            "Megatron 数据并行",
+            "多种模型规模",
+            "与 Megatron 相当性能，无需专有集群",
+            "arXiv 2304.11277"
+          ],
+          [
+            "1F1B 流水线调度",
+            "GPipe",
+            "多节点大规模训练",
+            "气泡从 ~40% 降至 ~4%，吞吐提升 30%+",
+            "arXiv 1811.06965"
+          ],
+          [
+            "Interleaved 1F1B",
+            "标准 1F1B",
+            "MoE / 大模型",
+            "相同配置下吞吐提升约 10–20%",
+            "arXiv 2104.04473"
+          ],
+          [
+            "DualPipe（DeepSeek-V3）",
+            "常规 PP 调度",
+            "DeepSeek-V3 预训练",
+            "在长序列 MoE 训练中显著提升 MFU",
+            "arXiv 2412.19437"
+          ],
+          [
+            "激活重计算",
+            "不重计算",
+            "显存受限场景",
+            "显存降 60%+，代价约 20–30% 额外计算",
+            "arXiv 2004.13337"
+          ]
+        ],
+        "caption": "注：吞吐/气泡数字依集群拓扑与通信库差异较大，跨论文对比仅供参考"
+      }
+    },
+    {
+      "heading": "适用边界",
+      "body": "<ul><li><strong>ZeRO-3 并非总是最优</strong>：参数按需 all-gather 会显著增加通信量，在带宽受限集群上可能反而更慢。ZeRO-2 常是更好的平衡点</li><li><strong>TP 的规模上限</strong>：通常不超过 8 卡（单机），再大通信开销吞掉收益</li><li><strong>PP 气泡</strong>：micro-batch 数 M 需远大于 stage 数 P，否则大量算力空转</li><li><strong>MoE 训练的真正瓶颈</strong>往往不是算力而是 All-to-All 通信与负载均衡，而不是专家本身的计算</li><li><strong>重计算的代价是实打实的</strong>：20–30% 的额外算力换显存，在算力受限时是净亏</li></ul>",
+      "refs": [
+        {
+          "title": "ZeRO: Memory Optimizations Toward Training Trillion Parameter Models",
+          "url": "https://arxiv.org/abs/1910.02054"
+        },
+        {
+          "title": "PyTorch FSDP: Experiences on Scaling Fully Sharded Data Parallel",
+          "url": "https://arxiv.org/abs/2304.11277"
+        },
+        {
+          "title": "PipeDream: Fast and Efficient Pipeline Parallel DNN Training (1F1B)",
+          "url": "https://arxiv.org/abs/1811.06965"
+        },
+        {
+          "title": "Efficient Large-Scale Language Model Training on GPU Clusters Using Megatron-LM (Interleaved)",
+          "url": "https://arxiv.org/abs/2104.04473"
+        },
+        {
+          "title": "DeepSeek-V3 Technical Report (DualPipe / EP)",
+          "url": "https://arxiv.org/abs/2412.19437"
+        },
+        {
+          "title": "Training Deep Nets with Sublinear Memory Cost (gradient checkpointing)",
+          "url": "https://arxiv.org/abs/2004.13337"
+        }
+      ]
+    }
+  ]
+}

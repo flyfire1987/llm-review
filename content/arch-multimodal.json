@@ -1,0 +1,131 @@
+{
+  "title": "多模态模型",
+  "summary": "多模态的主流方案是「冻结视觉编码器 + 投影层 + 文本 LLM」，而不是从头做统一的离散化 token——后者更优雅但成本高得多。",
+  "updated_at": "2026-11-04",
+  "sections": [
+    {
+      "heading": "三种主流架构路线",
+      "tldr": "① 拼接式（CLIP + 投影 + LLM）：成本低、生态成熟、事实性风险；② 统一离散化（Emu3）：架构最统一、能力最全、数据需求最高；③ 原生多模态预训练（Fuyu/GPT-4o）：效果最好但几乎只有大厂做得动。",
+      "body": "<ul><li><strong>路线一：拼接式（主流）</strong>：视觉编码器（CLIP ViT / SigLIP）提取特征 → 投影层（线性 / MLP / Q-Former）映射到 LLM 的 embedding 空间 → 与文本 token 拼接后走标准自回归解码</li><li><strong>路线二：统一离散化</strong>：把图像切成 patch，量化成 token id，与文本 token 放进同一个词表，同一套 next-token 目标训练</li><li><strong>路线三：原生多模态预训练</strong>：从预训练阶段就用图文混合数据，视觉与文本在同一个 backbone 里共同演化</li></ul>",
+      "points": [
+        "拼接式的事实性风险：视觉编码器冻结 → 训练数据里的图片「事实」与视觉编码器解码出的信息可能矛盾",
+        "GPT-4o 这类原生训练的模型在语音/视频等模态上更强，但训练数据与算力门槛极高"
+      ]
+    },
+    {
+      "heading": "核心技术点",
+      "body": "<h3>1. 视觉编码器选型</h3><ul><li><strong>CLIP ViT</strong>：对比学习预训练，语义理解好，是最常见选择</li><li><strong>SigLIP</strong>：sigmoid loss 训练，效果略优</li><li><strong>ConvNeXt / EVA</strong>：CNN 或更强 ViT，在高分辨率任务上有优势</li><li><strong>动态分辨率</strong>：Qwen-VL / InternVL 用 NaViT 式动态分辨率，把图片按原始宽高比切块，避免拉伸失真</li></ul><h3>2. 投影层设计</h3><ul><li><strong>线性投影</strong>：最简单，训练快</li><li><strong>MLP 投影</strong>（LLaVA）：两层 MLP，效果明显好于线性，是当前主流</li><li><strong>Q-Former</strong>（BLIP-2）：用可学习 query 提取固定数量的视觉 token，压缩率高，适合端侧</li><li><strong>Perceiver Resampler</strong>：类似思想，跨模态对齐能力更强</li></ul><h3>3. 训练策略</h3><ul><li><strong>两阶段</strong>：① 冻结视觉编码器 + LLM，只训投影层（用大规模图文对）；② 解冻 LLM 做指令微调</li><li><strong>三阶段</strong>：再加入纯文本数据做联合微调，防止灾难性遗忘</li></ul><h3>4. 视觉指令数据</h3><p>LLaVA-Instruct 用 GPT-4 生成多轮对话数据（GPT-4 只给文本，模型自己描述图像内容），是后续大量工作的基础。关键点是<strong>视觉 grounding</strong>：让指代、计数、OCR 等任务有精确的 bbox 或坐标标注。</p><h3>5. 视频与文档理解</h3><ul><li><strong>视频</strong>：帧采样策略（均匀 vs 关键帧）+ 时序位置编码</li><li><strong>文档</strong>：高分辨率处理，用动态分辨率 tiling 保证文字清晰；PageIndex 等方案把渲染页转成结构化文本树，反而比直接看图更准</li></ul><h3>6. 幻觉问题</h3><p>多模态模型会「一本正经地编造」图像内容，尤其是被问及图中不存在的细节。缓解手段：RLHF 中加入「拒答/说不确定」样本、训练时加入负样本（问不存在的东西，正确答案是「图中没有」）。</p>",
+      "callout": {
+        "title": "落地建议",
+        "body": "如果是业务场景：拼接式 + MLP 投影 + 两阶段训练是性价比最高的组合，先跑通再做数据精细化。视觉编码器优先选 SigLIP 或 Qwen-VL 的 vision tower（已针对 OCR 优化）。文档类任务先评估「渲染成文本 + 文本模型」与「直接看图」两条路线，可能后者更好。"
+      }
+    },
+    {
+      "heading": "实验效果",
+      "table": {
+        "headers": [
+          "工作 / 架构",
+          "对比基线",
+          "设置",
+          "关键结果",
+          "出处"
+        ],
+        "rows": [
+          [
+            "LLaVA",
+            "Flamingo",
+            "LLaMA / Vicuna + CLIP",
+            "多模态对话效果接近 GPT-4，作者报告 human eval 胜 GPT-4",
+            "arXiv 2304.08485"
+          ],
+          [
+            "Qwen-VL",
+            "LLaVA",
+            "多分辨率训练",
+            "多语言与文档理解更强，支持多种分辨率",
+            "arXiv 2308.12966"
+          ],
+          [
+            "InternVL",
+            "LLaVA / Qwen-VL",
+            "大规模图文预训练",
+            "OCR 与高分辨率任务显著领先",
+            "arXiv 2312.14238"
+          ],
+          [
+            "BLIP-2（Q-Former）",
+            "Flamingo / LLaVA",
+            "冻结 LLM",
+            "以更少训练参数达到可比效果",
+            "arXiv 2301.12597"
+          ],
+          [
+            "Emu3",
+            "拼接式架构",
+            "纯 next-token 统一目标",
+            "单一架构同时胜任图像生成与多模态理解",
+            "arXiv 2309.15838"
+          ],
+          [
+            "Fuyu",
+            "拼接式架构",
+            "原生多模态预训练",
+            "验证从预训练阶段开始多模态联合训练的优势",
+            "arXiv 2309.10013"
+          ],
+          [
+            "GPT-4o 技术报告",
+            "—",
+            "原生端到端训练",
+            "语音/视觉延迟大幅降低，能力接近人类交互水平",
+            "arXiv 2410.00037"
+          ]
+        ],
+        "caption": "注：多模态评测常依赖 GPT-4 打分，主观性较强，需结合人工判断"
+      }
+    },
+    {
+      "heading": "适用边界",
+      "body": "<ul><li><strong>拼接式的「事实冲突」</strong>：视觉编码器冻结，模型可能被训练数据里的描述带偏，与图像实际内容矛盾</li><li><strong>分辨率与 OCR</strong>：小字、表格、密集文字是弱项，需要高分辨率 tiling 或先 OCR 转文本</li><li><strong>幻觉难以根除</strong>：只能缓解不能消除，涉及精确计数的场景必须用程序化方案（检测 + 计算）</li><li><strong>视频成本高</strong>：帧数 × 每帧 token 数，可能迅速超出上下文预算</li><li><strong>统一离散化需要巨量数据</strong>：小团队基本不现实</li><li><strong>多模态评测的可靠性差</strong>：不要只依赖 MMMU / MMBench 排名做决策</li></ul>",
+      "refs": [
+        {
+          "title": "Visual Instruction Tuning (LLaVA)",
+          "url": "https://arxiv.org/abs/2304.08485"
+        },
+        {
+          "title": "Qwen-VL: Visual-Language Pre-training for Versatile Understanding and Generation",
+          "url": "https://arxiv.org/abs/2308.12966"
+        },
+        {
+          "title": "InternVL: Scaling up Vision Foundation Models and Aligning for Generic Visual-Linguistic Tasks",
+          "url": "https://arxiv.org/abs/2312.14238"
+        },
+        {
+          "title": "BLIP-2: Bootstrapping Language-Image Pre-training with Frozen Image Encoders and Large Language Models",
+          "url": "https://arxiv.org/abs/2301.12597"
+        },
+        {
+          "title": "Emu3: Next-Generation Multimodal Foundation Models",
+          "url": "https://arxiv.org/abs/2309.15838"
+        },
+        {
+          "title": "Fuyu-8B (原生多模态预训练)",
+          "url": "https://arxiv.org/abs/2309.10013"
+        },
+        {
+          "title": "GPT-4o Technical Report",
+          "url": "https://arxiv.org/abs/2410.00037"
+        }
+      ]
+    },
+    {
+      "heading": "📌 最新进展",
+      "tldr": "自动同步的技术动态（每日 03:00 任务写入），随领域进展更新。",
+      "body": "<p>以下条目由每日同步任务自动追加，按时间倒序排列，<strong>原文链接</strong>可直达原论文/原文。</p>",
+      "points": [
+        "[2026-11-04] **NTCIR-19 SciClaimEval任务概述：科学论文中的跨模式索赔验证**（arXiv）— This paper presents an overview of \\emph{SciClaimEval}, a pilot task at NTCIR-19 on verifying scientific claims against the tables and figures of the papers in  原文：http://arxiv.org/abs/2611.06090",
+        "[2026-11-04] **ModalSearcher ：将视觉证据编织到自主跨模态深度搜索中**（arXiv）— Static and incomplete parametric knowledge limits the performance of multimodal large language models on novel-knowledge and knowledge-intensive tasks, especial 原文：http://arxiv.org/abs/2611.06131"
+      ]
+    }
+  ]
+}

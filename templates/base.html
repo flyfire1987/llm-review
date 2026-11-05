@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}大模型综述{% endblock %}</title>
+  <link rel="stylesheet" href="{{ script_name }}/static/css/llm.css">
+</head>
+<body>
+
+<div class="layout">
+  <!-- ══════════ 左侧菜单 ══════════ -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-head">
+      <a class="back-btn" href="/" title="返回门户首页">
+        <span class="back-arrow">←</span>
+        <span class="back-text">返回首页</span>
+      </a>
+      <div class="brand">
+        <div class="brand-title">大模型综述</div>
+        <div class="brand-sub">LLM Survey</div>
+      </div>
+    </div>
+
+    <nav class="menu" id="menu">
+      <a class="menu-root {% if request.path in ['/', '/llm/'] %}active{% endif %}" href="{{ script_name }}/">
+        <span class="mi">🏠</span><span>总览</span>
+      </a>
+      {% for sec in nav.sections %}
+        <div class="menu-sec">
+          {% if sec.children %}
+            <div class="menu-sec-title">
+              <span class="mi">{{ sec.icon or '📂' }}</span>{{ sec.title }}
+            </div>
+            {% for item in sec.children %}
+              <a class="menu-item depth-1 {% if item.slug == active_slug %}active{% endif %}"
+                 href="{{ script_name }}/page/{{ item.slug }}"
+                 {% if item.slug == active_slug %}data-current="1"{% endif %}>
+                <span class="dot"></span>{{ item.title }}
+              </a>
+              {% if item.children %}
+                {% for sub in item.children %}
+                  <a class="menu-item depth-2 {% if sub.slug == active_slug %}active{% endif %}"
+                     href="{{ script_name }}/page/{{ sub.slug }}"
+                     {% if sub.slug == active_slug %}data-current="1"{% endif %}>
+                    <span class="dot"></span>{{ sub.title }}
+                  </a>
+                {% endfor %}
+              {% endif %}
+            {% endfor %}
+          {% else %}
+            <a class="menu-item depth-1 {% if sec.slug == active_slug %}active{% endif %}"
+               href="{{ script_name }}/page/{{ sec.slug }}"
+               {% if sec.slug == active_slug %}data-current="1"{% endif %}>
+              <span class="dot"></span>{{ sec.title }}
+            </a>
+          {% endif %}
+        </div>
+      {% endfor %}
+    </nav>
+
+    <div class="sidebar-foot">
+      <a class="foot-link" href="{{ script_name }}/page/glossary">📖 术语表</a>
+      <a class="foot-link" href="{{ script_name }}/page/refs">📚 参考文献</a>
+    </div>
+  </aside>
+
+  <!-- ══════════ 右侧内容 ══════════ -->
+  <main class="content" id="content">
+    {% block content %}{% endblock %}
+  </main>
+</div>
+
+<!-- 移动端菜单开关 -->
+<button class="menu-toggle" id="menuToggle" aria-label="菜单">☰</button>
+<div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+{% block scripts %}{% endblock %}
+</body>
+</html>

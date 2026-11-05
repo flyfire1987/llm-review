@@ -1,0 +1,381 @@
+{
+  "_comment": "技术点 → 关键词映射。用于把每日论文/新闻路由到综述中对应的模块页，实现'合并进已有技术点'。",
+  "_usage": "关键词匹配 arXiv 标题+摘要（大小写不敏感），命中最多的模块优先；score>=2 才认为是强相关。",
+  "topics": {
+    "pretrain-data": {
+      "title": "数据 Pipeline",
+      "keywords": [
+        "pretraining data",
+        "pretraining corpus",
+        "data curation",
+        "data filtering",
+        "data quality",
+        "deduplication",
+        "fineweb",
+        "datacomp",
+        "domain mixture",
+        "domain reweighting",
+        "data mixture",
+        "tokenizer",
+        "synthetic data",
+        "web data",
+        "data contamination",
+        "knowledge injection",
+        "training data quality",
+        "data scaling law",
+        "data mixture optimization"
+      ],
+      "title_zh": "数据 Pipeline"
+    },
+    "pretrain-arch": {
+      "title": "架构设计",
+      "keywords": [
+        "transformer architecture",
+        "attention mechanism",
+        "state space model",
+        "mamba",
+        "linear attention",
+        "rotary position embedding",
+        "rope scaling",
+        "pre-ln",
+        "rmsnorm",
+        "swiglu",
+        "grouped-query attention",
+        "gqa",
+        "multi-head attention",
+        "layer normalization",
+        "deepseek architecture",
+        "architecture design",
+        "attention sink",
+        "sliding window attention",
+        "deepseek-v2",
+        "deepseek-v3"
+      ],
+      "title_zh": "架构设计"
+    },
+    "pretrain-objective": {
+      "title": "训练目标",
+      "keywords": [
+        "language modeling objective",
+        "next-token prediction",
+        "next token prediction",
+        "autoregressive objective",
+        "pretraining objective",
+        "masked language model",
+        "mutual information maximization",
+        "world model objective",
+        "self-supervised objective",
+        "prediction objective",
+        "language modeling loss"
+      ],
+      "title_zh": "训练目标"
+    },
+    "pretrain-scaling": {
+      "title": "Scaling Law",
+      "keywords": [
+        "scaling law",
+        "chinchilla",
+        "compute optimal",
+        "compute-optimal",
+        "parameter scaling",
+        "emergent abilit",
+        "model scaling",
+        "loss scaling",
+        "compute trend",
+        "data-constrained"
+      ],
+      "title_zh": "Scaling Law"
+    },
+    "pretrain-parallel": {
+      "title": "并行策略与训练效率",
+      "keywords": [
+        "parallelism",
+        "distributed training",
+        "tensor parallel",
+        "pipeline parallel",
+        "zero redundancy",
+        "fsdp",
+        "megatron",
+        "training efficiency",
+        "throughput optimization",
+        "gradient accumulation",
+        "checkpointing",
+        "communication efficiency"
+      ],
+      "title_zh": "并行策略与训练效率"
+    },
+    "posttrain-sft": {
+      "title": "SFT 与指令数据",
+      "keywords": [
+        "supervised fine-tuning",
+        "supervised finetuning",
+        "instruction tuning",
+        "instruction-following",
+        "instruction following",
+        "lima",
+        "self-instruct",
+        "evol-instruct",
+        "alpaca",
+        "teacher forcing",
+        "lora",
+        "peft",
+        "parameter-efficient fine-tuning",
+        "instruction data",
+        "sft data",
+        "multitask instruction",
+        "prompt tuning"
+      ],
+      "title_zh": "SFT 与指令数据"
+    },
+    "posttrain-preference": {
+      "title": "偏好对齐（RLHF/DPO）",
+      "keywords": [
+        "rlhf",
+        "dpo",
+        "preference optimization",
+        "preference alignment",
+        "reward model",
+        "reward modeling",
+        "human feedback",
+        "alignment",
+        "constitutional ai",
+        "simpo",
+        "kto",
+        "preference data"
+      ],
+      "title_zh": "偏好对齐"
+    },
+    "posttrain-rl": {
+      "title": "强化学习算法",
+      "keywords": [
+        "reinforcement learning",
+        "rlvr",
+        "grpo",
+        "ppo",
+        "verifiable reward",
+        "rlhf training",
+        "policy optimization",
+        "policy gradient",
+        "reasoning training",
+        "test-time compute",
+        "outcome reward",
+        "process reward",
+        "self-play"
+      ],
+      "title_zh": "强化学习算法"
+    },
+    "posttrain-agentic": {
+      "title": "Agent 与工具调用训练",
+      "keywords": [
+        "agent",
+        "tool use",
+        "tool call",
+        "function calling",
+        "multi-step",
+        "web agent",
+        "gui agent",
+        "trajectory",
+        "trajectory distillation",
+        "agentic",
+        "computer use",
+        "planning agent",
+        "react framework"
+      ],
+      "title_zh": "Agent 与工具调用训练"
+    },
+    "posttrain-eval": {
+      "title": "评测体系",
+      "keywords": [
+        "benchmark",
+        "evaluation",
+        "llm-as-judge",
+        "llm judge",
+        "contamination",
+        "contamination check",
+        "eval harness",
+        "human evaluation",
+        "leaderboard",
+        "arena",
+        "model evaluation",
+        "construct validity"
+      ],
+      "title_zh": "评测体系"
+    },
+    "inference-serving": {
+      "title": "推理引擎与服务框架",
+      "keywords": [
+        "inference engine",
+        "serving system",
+        "vllm",
+        "sglang",
+        "tensorrt",
+        "triton",
+        "continuous batching",
+        "disaggregated serving",
+        "prefill decode",
+        "throughput optimization",
+        "scheduling",
+        "request queue",
+        "ttft",
+        "serverless inference"
+      ],
+      "title_zh": "推理引擎与服务框架"
+    },
+    "inference-kvcache": {
+      "title": "KV Cache 与内存优化",
+      "keywords": [
+        "kv cache",
+        "kv-cache",
+        "key-value cache",
+        "pagedattention",
+        "attention sink",
+        "kv compression",
+        "kv quantization",
+        "memory efficient attention",
+        "cache eviction",
+        "prefix caching",
+        "mla",
+        "latent attention",
+        "gqa"
+      ],
+      "title_zh": "KV Cache 与内存优化"
+    },
+    "inference-quant": {
+      "title": "量化与算子优化",
+      "keywords": [
+        "quantization",
+        "quantized",
+        "int4",
+        "int8",
+        "fp8",
+        "nf4",
+        "awq",
+        "gptq",
+        "smoothquant",
+        "kernel optimization",
+        "flashattention",
+        "cuda kernel",
+        "operator fusion",
+        "low-precision",
+        "bit"
+      ],
+      "title_zh": "量化与算子优化"
+    },
+    "inference-speculative": {
+      "title": "投机解码",
+      "keywords": [
+        "speculative decoding",
+        "speculative sampling",
+        "draft model",
+        "acceptance rate",
+        "medusa",
+        "eagle",
+        "lookahead decoding",
+        "self-speculative",
+        "n-gram drafting"
+      ],
+      "title_zh": "投机解码"
+    },
+    "inference-parallel": {
+      "title": "并行与长上下文推理",
+      "keywords": [
+        "long context inference",
+        "context parallelism",
+        "chunked prefill",
+        "ring attention",
+        "sequence parallelism",
+        "context length extension",
+        "long-context serving",
+        "streaming inference"
+      ],
+      "title_zh": "并行与长上下文推理"
+    },
+    "arch-moe": {
+      "title": "MoE 混合专家",
+      "keywords": [
+        "mixture of experts",
+        "moe",
+        "sparse expert",
+        "expert routing",
+        "load balancing loss",
+        "gshard",
+        "switch transformer",
+        "expert parallelism",
+        "fine-grained expert",
+        "expert choice"
+      ],
+      "title_zh": "MoE 混合专家"
+    },
+    "arch-longctx": {
+      "title": "长上下文与位置外推",
+      "keywords": [
+        "position interpolation",
+        "yarn",
+        "ntk-aware",
+        "longrope",
+        "rope scaling",
+        "context extension",
+        "context window extension",
+        "long context",
+        "effective context length",
+        "position extrapolation",
+        "needle-in-a-haystack"
+      ],
+      "title_zh": "长上下文与位置外推"
+    },
+    "arch-multimodal": {
+      "title": "多模态模型",
+      "keywords": [
+        "multimodal",
+        "multi-modal",
+        "vision-language",
+        "vlm",
+        "visual encoder",
+        "image understanding",
+        "vision model",
+        "cross-modal",
+        "cross modal",
+        "text-to-image",
+        "visual instruction",
+        "video understanding",
+        "visual question",
+        "image-text",
+        "vision transformer",
+        "audio language",
+        "speech language model",
+        "vision encoder",
+        "visual grounding",
+        "video generation model"
+      ],
+      "title_zh": "多模态模型"
+    },
+    "compare-models": {
+      "title": "主流模型参数对比",
+      "keywords": [
+        "model release",
+        "new llm",
+        "new model release",
+        "state-of-the-art model",
+        "state of the art llm",
+        "open-weight model",
+        "open-weight llm",
+        "open source model",
+        "open-source llm",
+        "llm release",
+        "frontier model",
+        "model announcement",
+        "generalization benchmark",
+        "model lineup",
+        "model family",
+        "model comparison",
+        "model zoo"
+      ],
+      "title_zh": "主流模型参数对比"
+    }
+  },
+  "_merge_note": "当一篇论文命中某个 topic 的关键词时，除了进每日动态，还会以'最新进展'形式合并进该 topic 对应的页面（content/<slug>.json），保证综述与时俱进。合并时追加到 sections 中 heading 为『📌 最新进展』的区块（不存在则创建）。",
+  "_merge_threshold": 2,
+  "_merge_max_per_page": 8,
+  "_daily_max": 10,
+  "_retention_days": 30
+}

@@ -1,0 +1,48 @@
+{
+  "title": "预训练训练目标",
+  "summary": "Next-token Prediction 仍是绝对主流，但它并不擅长表征学习——这是 encoder 路线在某些任务上依然有优势的原因。",
+  "updated_at": "2026-11-05",
+  "sections": [
+    {
+      "heading": "自回归语言建模（Next-token Prediction）",
+      "tldr": "因果分解的 next-token 预测让每个位置都贡献一个训练信号，样本效率远高于 masked LM；代价是模型只学到了「从左到右」的表征，天然不擅长双向理解。",
+      "body": "<p>核心目标函数（标准交叉熵）：</p><pre><code>ℒ = - Σₜ log P(xₜ | x₁, x₂, ..., xₜ₋₁)</code></pre><p>其中 <code>xₜ</code> 是第 t 个 token，条件只依赖前文。这种<strong>因果分解</strong>带来两个结构性优势：</p><ul><li><strong>样本效率高</strong>：序列中每个位置都是一次预测，N 个 token 产生 N 个监督信号，而 masked LM 只在 15% 的位置上产生信号</li><li><strong>与推理形式一致</strong>：训练时的条件分布结构 = 推理时的自回归解码结构，无 mismatch</li></ul><p>对应的目标是 <strong>Teacher Forcing</strong>：训练时并行喂入完整序列，由 causal mask 保证每个位置看不到未来 token，因此可以用矩阵乘法并行计算全部位置的 loss，训练效率接近 teacher forcing 而推理时是自回归。</p>",
+      "points": [
+        "因果掩码（causal mask）+ teacher forcing = 训练时全序列并行，推理时逐 token 生成",
+        "自回归目标与解码目标一致，是 RLHF 能生效的前提基础"
+      ]
+    },
+    {
+      "heading": "核心技术点",
+      "body": "<h3>1. 与 Masked LM 的对比</h3><p>BERT 式 masked LM（MLM）随机遮盖 15% token 让模型双向补全，在理解类任务上强；但 GPT 式 CLM 在 zero-shot 生成上强。根本原因是 <strong>CLM 天然学到 p(text) 的完整分布</strong>，而 MLM 学到的是被扰动后的分布，需要额外做数据增强。</p><h3>2. MoE 的负载均衡损失</h3><p>在稀疏专家架构下，需要在路由损失中加 <strong>辅助损失（auxiliary loss）</strong>，强制专家使用率均衡，避免「专家坍塌」（少数专家承担全部 token）。</p><pre><code>L_aux = α · N · Σᵢ fᵢ · Pᵢ\n  fᵢ = 该专家本批次处理的 token 比例\n  Pᵢ = 路由给该专家的平均概率</code></pre><h3>3. 多模态统一目标</h3><p>把图像/音频离散化为 token 序列，与文本 token 混合后用同一套 next-token 目标训练（ULip、Emu3 等）。核心假设：<strong>多模态序列本质上是「模态间翻译」问题</strong>。</p><h3>4. 去重化与去污染目标</h3><p>对重复出现的文档做 token 级去重或加权，避免模型把「训练语料本身」当成规律背下来。</p>",
+      "callout": {
+        "title": "关于多模态目标的争议",
+        "body": "Emu3 的实证显示：统一离散化 + 纯 next-token 目标能同时达到图像生成与文本理解能力，但需要极大数据量；多数落地系统仍采用「冻结视觉编码器 + 投影层 + 文本 LLM」的拼接式方案。"
+      }
+    },
+    {
+      "heading": "实验效果",
+      "table": {
+        "headers": ["工作 / 目标", "对比基线", "设置", "关键结果", "出处"],
+        "rows": [
+          ["CLM vs MLM（架构选型）", "Encoder-only / Encoder-Decoder", "约 1.5B 参数，zero-shot 评测", "Decoder-only 的 CLM 目标在 zero-shot 泛化上占优", "arXiv 2010.11929"],
+          ["MoE 辅助损失", "无负载均衡约束", "Switch Transformer、GLaM", "消除专家坍塌，路由负载方差大幅下降，训练 loss 更低", "arXiv 2101.03961 / arXiv 2112.06932"],
+          ["多模态统一离散化", "拼接式（编码器+投影层）", "Emu3", "单一 next-token 目标同时胜任图像生成与多模态理解", "arXiv 2309.15838"],
+          ["ULip 预训练目标", "纯文本 CLIP 对比学习", "多模态预训练", "文本编码器可零样本迁移到视觉任务", "arXiv 2212.05171"]
+        ],
+        "caption": "注：目标函数常与架构、数据强耦合，单变量对比的实验较少，读数时需注意这一点"
+      }
+    },
+    {
+      "heading": "适用边界",
+      "body": "<ul><li><strong>需要双向表征的任务</strong>（检索、重排序、语义匹配）：CLM 的单向偏置是真实损失，encoder 或双塔 + 对比学习更合适</li><li><strong>MoE 辅助损失权重</strong>（α）敏感：过大压制路由自由度、限制模型上限，过小则专家坍塌，实践中通常需要按 batch 动态调整</li><li><strong>多模态统一目标</strong>对数据量要求极高，数据不足时拼接式方案更稳妥</li><li><strong>纯文本大模型</strong>上 CLM vs MLM 结论已相当稳固，不需要再纠结</li></ul>",
+      "refs": [
+        {"title": "Exploring the Limits of Transfer Learning with a Unified Text-to-Text Transformer", "url": "https://arxiv.org/abs/2010.11929"},
+        {"title": "Switch Transformers: Scaling to Trillion Parameter Models", "url": "https://arxiv.org/abs/2101.03961"},
+        {"title": "GLaM: Efficient Scaling of Language Models with Mixture-of-Experts", "url": "https://arxiv.org/abs/2112.06932"},
+        {"title": "Emu3: Next-Generation Multimodal Foundation Models", "url": "https://arxiv.org/abs/2309.15838"},
+        {"title": "ULip: Learning a Unified Representation of Language, Images, and Audio", "url": "https://arxiv.org/abs/2212.05171"}
+      ]
+    }
+  ]
+}

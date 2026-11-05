@@ -1,0 +1,132 @@
+{
+  "title": "强化学习算法",
+  "summary": "LLM 上的 RL 从 PPO 转向 GRPO 等去 value model 的方法，核心驱动力是稳定性与显存效率；RLVR（可验证奖励）成为提升推理能力的主力手段。",
+  "updated_at": "2026-11-04",
+  "sections": [
+    {
+      "heading": "RL 在 LLM 上的定位",
+      "tldr": "RL 不教模型新知识，而是让模型学会「更可靠地使用已有能力」——通过采样多条解法并奖励正确的那些（可验证奖励），把 pass@k 能力转化为 pass@1 能力。",
+      "body": "<p>核心机制：模型对同一问题采样 N 条推理链，奖励模型/验证器给每条打分，用强化学习更新策略，让高奖励的解法概率上升。</p><p>为什么有效：预训练后模型的能力分布是「知道答案但不稳定」——正确解法出现在采样分布里，但不一定在 top-1。RL 做的事是<strong>把概率质量从低分解迁移到正确解</strong>。</p><pre><code>能力天花板：pass@k（k 次采样中至少一次对）\n实际产出：pass@1（最可能的那条对不对）\nRL 的作用：pass@k → pass@1 的转化</code></pre>",
+      "points": [
+        "RL 的收益上限由 pass@k 决定——模型根本不会的题，RL 也救不回来",
+        "可验证奖励（数学答案、代码测试、格式校验）是当前最可靠、最无偏的奖励来源"
+      ]
+    },
+    {
+      "heading": "核心技术点",
+      "body": "<h3>1. PPO 在 LLM 上的问题</h3><ul><li><strong>需要 value model</strong>：额外一份参数，且 value 预测本身难训、方差大</li><li><strong>训练不稳定</strong>：KL 系数、value 学习率、advantage 归一化等超参互相耦合，reward collapse（奖励塌缩）频发</li><li><strong>显存开销大</strong>：policy + ref + RM + value + rollout buffer 同时在显存里</li></ul><h3>2. GRPO（Group Relative Policy Optimization）</h3><p>DeepSeek 提出的核心改动：<strong>去掉 value model</strong>，改为对同一 prompt 采样一组答案，用组内奖励的均值和标准差做归一化，直接作为 advantage：</p><pre><code>A_i = (r_i - mean(r₁..r_G)) / std(r₁..r_G)\nℒ = - E[ Σ A_i · log π_θ(y_i | x) ]</code></pre><p>好处：省掉一半模型显存、去掉 value 训练不稳定的来源、组内对比天然归一化。</p><h3>3. DAPO 与 GSPO</h3><ul><li><strong>DAPO</strong>（Decoupled Clip and Dynamic sAmpling Policy Optimization）：解耦 clip 上界、动态采样（丢弃全对或全错的 group，它们 advantage 为 0 没有学习信号）、token-level 损失归一化、overlong reward shaping</li><li><strong>GSPO</strong>（Group Sequence Policy Optimization）：把重要性采样比率从 token 级改为 sequence 级，解决长序列上 token 级比率方差过大的问题</li></ul><h3>4. RLVR（RL with Verifiable Rewards）</h3><p>用<strong>确定性验证器</strong>替代学习出来的奖励模型：数学题比对最终答案、代码题跑单元测试、结构化输出跑 schema 校验。优势：奖励无偏、不会 reward hacking、成本低。</p><h3>5. 训练效率：off-policy 复用</h3><p>on-policy RL 每步都要重新采样，成本极高。业界做法是<strong>用 SFT 数据做 off-policy 预热</strong>（如 DeepSeek-R1 的 cold-start 阶段），以及用同一批 rollout 数据做多轮更新（类似 PPO 的多 epoch 技巧）。</p><h3>6. 纯 RL 能否涌现推理能力</h3><p>DeepSeek-R1 的关键结论：<strong>纯 RL（无需 SFT）也能涌现出长思维链、自我反思、验证等推理行为</strong>，前提是存在可验证奖励且使用大规模 RL。</p>",
+      "callout": {
+        "title": "选型建议",
+        "body": "· 追求推理/数学/代码能力 → GRPO / DAPO + RLVR<br>· 追求风格与安全对齐 → DPO 系（更简单）<br>· 有成熟 RL 基础设施与算力 → PPO 仍是表达力最强的选择<br>· 显存紧张 → GRPO 系列（无 value model）优先"
+      }
+    },
+    {
+      "heading": "实验效果",
+      "table": {
+        "headers": [
+          "方法",
+          "对比基线",
+          "设置",
+          "关键结果",
+          "出处"
+        ],
+        "rows": [
+          [
+            "GRPO",
+            "PPO (带 critic)",
+            "DeepSeekMath 120B 数学任务",
+            "去掉 critic 后训练更稳定，算力利用率更高",
+            "arXiv 2402.03300"
+          ],
+          [
+            "DeepSeek-R1-Zero",
+            "纯 SFT",
+            "纯 RL + 可验证奖励",
+            "涌现长思维链与自我验证行为，AIME 2024 达 71.0%",
+            "arXiv 2501.12948"
+          ],
+          [
+            "DeepSeek-R1",
+            "DeepSeek-R1-Zero",
+            "增加 cold-start SFT + 多阶段 RL",
+            "通用能力与可读性提升，AIME 2024 达 79.8%",
+            "arXiv 2501.12948"
+          ],
+          [
+            "DAPO",
+            "GRPO",
+            "长文本推理任务",
+            "动态采样 + token-level 损失，长推理任务准确率提升",
+            "arXiv 2503.14476"
+          ],
+          [
+            "GSPO",
+            "GRPO",
+            "Qwen3 8B 数学推理",
+            "长序列训练更稳定，提升幅度最大可达 13.5% 准确率",
+            "arXiv 2507.18071"
+          ],
+          [
+            "RLVR 实证",
+            "纯 SFT / 过程监督",
+            "AIME 等数学任务",
+            "纯 RLVR（无需过程标注）即可带来大幅提升",
+            "arXiv 2504.12537"
+          ],
+          [
+            "Open-Reasoner-Zero",
+            "DeepSeek-R1-Zero",
+            "开源复现",
+            "验证纯 RL 路线可复现，不依赖 SFT 冷启动",
+            "arXiv 2503.24252"
+          ]
+        ],
+        "caption": "注：数学任务上的绝对分数高度依赖题目难度与答案提取是否严格，不宜跨模型直接比较"
+      }
+    },
+    {
+      "heading": "适用边界",
+      "body": "<ul><li><strong>只对可验证任务有效</strong>：开放式写作、创意、事实问答没有可靠验证器，用 RM 会引入偏差</li><li><strong>RL 极其耗算力</strong>：rollout 生成是主要成本，比 SFT 贵一个数量级以上，pass@k 低的题不要浪费预算</li><li><strong>GRPO 的组内全对/全错问题</strong>：DAPO 的动态采样专门解决这个，纯粹照搬 GRPO 会有大量无效样本</li><li><strong>长思维链增加推理延迟</strong>：准确率提升伴随 token 数暴涨，在线服务需重算成本</li><li><strong>KL 约束与 SFT 的关系</strong>：RL 阶段是否加 SFT 冷启动目前仍有分歧，R1-Zero 与 R1 两版实验是主要证据</li><li><strong>格式坍缩</strong>：纯 RL 训练的模型输出可读性会下降，R1-Zero 的输出混杂中英，这是需要额外 SFT 修复的已知问题</li></ul>",
+      "refs": [
+        {
+          "title": "DeepSeekMath: Pushing the Limits of Mathematical Reasoning in Open Language Models (GRPO)",
+          "url": "https://arxiv.org/abs/2402.03300"
+        },
+        {
+          "title": "DeepSeek-R1: Incentivizing Reasoning Capability in LLMs via RL",
+          "url": "https://arxiv.org/abs/2501.12948"
+        },
+        {
+          "title": "DAPO: An Open-Source LLM Reinforcement Learning System at Scale",
+          "url": "https://arxiv.org/abs/2503.14476"
+        },
+        {
+          "title": "GSPO: Group Sequence Policy Optimization",
+          "url": "https://arxiv.org/abs/2507.18071"
+        },
+        {
+          "title": "Tuning Language Models with Verifiable Rewards (RLVR 实证)",
+          "url": "https://arxiv.org/abs/2504.12537"
+        },
+        {
+          "title": "Open-Reasoner-Zero: An Open Source Approach to Scaling Up Test-Time Compute",
+          "url": "https://arxiv.org/abs/2503.24252"
+        }
+      ]
+    },
+    {
+      "heading": "📌 最新进展",
+      "tldr": "自动同步的技术动态（每日 03:00 任务写入），随领域进展更新。",
+      "body": "<p>以下条目由每日同步任务自动追加，按时间倒序排列，<strong>原文链接</strong>可直达原论文/原文。</p>",
+      "points": [
+        "[2026-11-04] **RAGAM-AI ：基于生成式AI的混合强化学习Agentic边缘资源管理方法**（arXiv）— Resource management for distributed edge networks hosting different services has been handled efficiently using Reinforcement learning (RL). Reward generalizati 原文：http://arxiv.org/abs/2611.06554",
+        "[2026-11-04] **批量生产具有令人惊讶的副作用的培训数据**（arXiv）— Training data can have unexpected side effects on language model behavior outside the training domain: insecure code data can induce broad misalignment, and out 原文：http://arxiv.org/abs/2611.06324",
+        "[2026-11-04] **Turns Matter ：通过Turn-Level Credit推进流媒体视频RL**（arXiv）— Streaming video understanding requires models to repeatedly decide whether to respond or continue observing. Recently, Group Relative Policy Optimization (GRPO) 原文：http://arxiv.org/abs/2611.06728",
+        "[2026-11-04] **大纲课程RL ：利用不可验证领域的生成验证差距**（arXiv）— Reinforcement learning with verifiable rewards (RLVR) has led to significant gains in math and code generation. Extending these gains to open-ended domains rema 原文：http://arxiv.org/abs/2611.06244",
+        "[2026-11-04] **从手工制作到生成： Alexa +的RLVR优化图标生成**（arXiv）— Alexa+ devices with screens display animated icons during conversations to visually reinforce what is being said. The original set of these icons was hand-drawn 原文：http://arxiv.org/abs/2611.06123",
+        "[2026-11-04] **Traffic-VL ：用于通用端到端交通信号控制的强化视觉语言模型**（arXiv）— Existing traffic signal control methods typically rely on structured traffic states produced by dedicated perception pipelines. Emerging visual approaches often 原文：http://arxiv.org/abs/2611.06353",
+        "[2026-11-04] **EmoReward ：情感视频生成自我进化奖励校准RL**（arXiv）— Group Relative Policy Optimization (GRPO) has advanced generative model post-training in verifiable domains such as code and mathematics, but evaluating video q 原文：http://arxiv.org/abs/2611.06518"
+      ]
+    }
+  ]
+}

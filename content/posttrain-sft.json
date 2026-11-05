@@ -1,0 +1,119 @@
+{
+  "title": "SFT 与指令数据",
+  "summary": "SFT 的效果主要取决于数据，而非训练超参——这是当前共识度最高的结论之一。",
+  "updated_at": "2026-11-04",
+  "sections": [
+    {
+      "heading": "SFT 解决什么问题",
+      "tldr": "预训练模型学的是「续写」，SFT 教它「听指令、按格式回答」。SFT 的作用是激活已有能力 + 校准输出格式，而不是灌输新知识。",
+      "body": "<p>Base 模型的典型问题：会续写但不会「回答问题」，输出格式不可控，可能继续生成更多「问题-答案」对。</p><p>SFT（Supervised Fine-Tuning）用 (instruction, response) 配对数据做有监督训练，把模型对齐到指令跟随模式。训练目标仍是标准的交叉熵：</p><pre><code>ℒ = - Σ log P(response | instruction)</code></pre><p>注意实现上通常<strong>只对 response 部分计算 loss</strong>，instruction 部分作为条件（mask 掉）。</p>",
+      "points": [
+        "SFT 注入的是「行为模式」而非「知识」——事实性错误的修复主要靠预训练数据或 RL",
+        "同一条指令的多种等价回答应该都保留，模型要学会「答案不唯一」"
+      ]
+    },
+    {
+      "heading": "核心技术点",
+      "body": "<h3>1. 指令数据合成</h3><ul><li><strong>Self-Instruct</strong>：用模型自己生成指令，人工过滤，形成 bootstrap 的指令池</li><li><strong>Evol-Instruct</strong>（WizardLM）：把简单指令逐步演化（加约束、换场景、复杂化），提升难度分布</li><li><strong>Magpie</strong>：只给模板前缀，让模型续写出用户指令——零样本、无需种子任务</li></ul><h3>2. 数据质量 vs 数量</h3><p>这是 SFT 领域最重要的经验：<strong>少量高质量数据（~1K 条）效果常常优于大量低质量数据（~100K 条）</strong>。LIMA 的结论是「模型知识几乎全在预训练里，SFT 只是教格式与风格」，AlpaGasus 则用 GPT-4 过滤出 9K 高质量样本，在 Alpaca 65K 全量上取得更好效果。</p><h3>3. 去模板化（Decontamination of Templates）</h3><p>公开数据集大量使用固定模板（「### Instruction: ... ### Response: ...」），模型会学到「见到模板就输出某种风格」的捷径，遇到真实用户输入时表现下降。缓解方式：多样化模板、数据增强、以及在推理时也做类似格式化。</p><h3>4. 长度偏差与截断</h3><p>SFT 数据中「长回答更受偏好」的偏差（length bias）会让模型学会用冗长掩盖质量；评测与训练都需关注长度控制。</p><h3>5. 模板一致性</h3><p>训练时的 chat template 必须与推理时完全一致，否则格式错位导致性能下降——这是自建 SFT 流水线最常见的低级错误。</p>",
+      "callout": {
+        "title": "工程建议",
+        "body": "做 SFT 时，优先保证：① 训练/推理模板一致；② 数据里回答格式多样而非统一模板；③ 优先 1K–10K 条精标数据跑通，再考虑扩量；④ 每轮都做格式鲁棒性测试（不同问法、不同标点）"
+      }
+    },
+    {
+      "heading": "实验效果",
+      "table": {
+        "headers": [
+          "工作",
+          "数据规模",
+          "对比基线",
+          "关键结果",
+          "出处"
+        ],
+        "rows": [
+          [
+            "LIMA",
+            "1,000 条精标",
+            "标准 supervised baseline",
+            "仅 1K 条即可展现接近 GPT-4 的对话质量（人工评测）",
+            "arXiv 2305.11206"
+          ],
+          [
+            "AlpaGasus",
+            "9,000 条筛选",
+            "Alpaca 65K 全量",
+            "数据量少 7 倍，LLM-as-Judge 分数更优",
+            "arXiv 2307.08701"
+          ],
+          [
+            "Self-Instruct",
+            "52K 条",
+            "人工标注数据集",
+            "生成指令达到 GPT-3.5 级别，且成本更低",
+            "arXiv 2212.10560"
+          ],
+          [
+            "WizardLM / Evol-Instruct",
+            "250K 条",
+            "ShareGPT 原版",
+            "指令复杂度提升，模型在复杂指令任务上提升显著",
+            "arXiv 2304.12244"
+          ],
+          [
+            "Magpie",
+            "自动构造",
+            "依赖种子任务的方法",
+            "无需人工种子，直接从模板续写生成指令",
+            "arXiv 2312.16136"
+          ],
+          [
+            "长度偏差研究",
+            "—",
+            "—",
+            "SFT 数据中更长回答系统性获得更高偏好评分，存在明显长度偏差",
+            "arXiv 2310.06841"
+          ]
+        ],
+        "caption": "注：LIMA/AlpaGasus 依赖 LLM-as-Judge，评判模型本身的偏差会影响结论，需结合人工抽检"
+      }
+    },
+    {
+      "heading": "适用边界",
+      "body": "<ul><li><strong>SFT 不能可靠地注入新知识</strong>：想扩展知识面要回到预训练或用 RAG，SFT 会「幻觉式地」记住事实但泛化很差</li><li><strong>数据太少会欠拟合格式</strong>：1K 条是「够用」而非「下限」，任务越复杂需要越多</li><li><strong>数据太多会过拟合模板</strong>：尤其当数据来源单一（全是同一模型生成、同一模板）</li><li><strong>风格 vs 能力</strong>：SFT 能高效改变语气、格式、拒答策略，但不能提升推理正确率——后者是 RL 的战场</li><li><strong>灾难性遗忘</strong>：在窄领域上做大量 SFT 会显著损伤通用能力，需要混入通用数据</li></ul>",
+      "refs": [
+        {
+          "title": "Less Is More for Alignment: LIMA",
+          "url": "https://arxiv.org/abs/2305.11206"
+        },
+        {
+          "title": "AlpaGasus: Training a Better Alpaca with Fewer Data",
+          "url": "https://arxiv.org/abs/2307.08701"
+        },
+        {
+          "title": "Self-Instruct: Aligning Language Models with Self-Generated Instructions",
+          "url": "https://arxiv.org/abs/2212.10560"
+        },
+        {
+          "title": "WizardLM: Empowering Large Language Models to Follow Complex Instructions (Evol-Instruct)",
+          "url": "https://arxiv.org/abs/2304.12244"
+        },
+        {
+          "title": "Magpie: Alignment Data Synthesis from Scratch",
+          "url": "https://arxiv.org/abs/2312.16136"
+        },
+        {
+          "title": "A Long Way to Go: Investigating Length Correlations in RLHF",
+          "url": "https://arxiv.org/abs/2310.06841"
+        }
+      ]
+    },
+    {
+      "heading": "📌 最新进展",
+      "tldr": "自动同步的技术动态（每日 03:00 任务写入），随领域进展更新。",
+      "body": "<p>以下条目由每日同步任务自动追加，按时间倒序排列，<strong>原文链接</strong>可直达原论文/原文。</p>",
+      "points": [
+        "[2026-11-04] **AssameseLM-E2B ：面向高效消费级部署的开放式阿萨姆语模型**（arXiv）— While Large Language Models (LLMs) excel in high-resource languages, their performance often degrades in low-resource languages due to tokenization inefficienci 原文：http://arxiv.org/abs/2611.06170"
+      ]
+    }
+  ]
+}

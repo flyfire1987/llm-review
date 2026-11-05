@@ -1,0 +1,109 @@
+{
+  "title": "术语表",
+  "summary": "本综述涉及的中英文术语与缩写速查，按拼音/英文排序。",
+  "updated_at": "2026-11-05",
+  "sections": [
+    {
+      "heading": "缩写速查",
+      "table": {
+        "headers": ["缩写", "全称", "含义与出现阶段"],
+        "rows": [
+          ["SFT", "Supervised Fine-Tuning", "监督微调；后训练阶段最基础的方法"],
+          ["RLHF", "RLHF", "基于人类反馈的强化学习；偏好对齐的主流方案"],
+          ["DPO", "Direct Preference Optimization", "直接偏好优化；免需 reward model 的对齐方法"],
+          ["RLVR", "RL with Verifiable Rewards", "可验证奖励强化学习；数学/代码推理的主力"],
+          ["GRPO", "Group Relative Policy Optimization", "组相对策略优化；DeepSeek 提出的 RL 算法"],
+          ["PPO", "Proximal Policy Optimization", "经典 RL 算法；RLHF 早期主力"],
+          ["MoE", "Mixture of Experts", "混合专家；稀疏激活架构"],
+          ["FFN", "Feed-Forward Network", "前馈网络；Transformer 中的 MLP 部分"],
+          ["RoPE", "Rotary Position Embedding", "旋转位置编码；当前主流位置编码方案"],
+          ["RMSNorm", "Root Mean Square Layer Norm", "均方根归一化；比 LayerNorm 更快更稳"],
+          ["GQA", "Grouped-Query Attention", "分组查询注意力；减小 KV Cache 体积"],
+          ["MLA", "Multi-head Latent Attention", "多头潜在注意力；DeepSeek 提出的 KV 压缩方案"],
+          ["KV Cache", "Key-Value Cache", "键值缓存；推理阶段复用已算出的注意力结果"],
+          ["TTFT", "Time To First Token", "首 token 延迟；交互式场景核心指标"],
+          ["TPOT", "Time Per Output Token", "每输出 token 延迟；决定生成流畅度"],
+          ["MHA", "Multi-Head Attention", "多头注意力；GQA 的对照基线"],
+          ["PD 分离", "Prefill-Decode Disaggregation", "预填充与解码分离部署；缓解长 prompt 阻塞"],
+          ["PagedAttention", "PagedAttention", "vLLM 的分页 KV 显存管理方案"],
+          ["NF4 / INT4", "4-bit NormalFloat / INT4", "低精度量化格式，用于权重量化"],
+          ["pass@k", "pass@k", "采样 k 次至少一次正确的概率；RL 收益的理论上界"],
+          ["数据污染", "Data Contamination", "训练数据包含测试题导致评测虚高"]
+        ],
+        "caption": "术语按出现阶段归类，便于回查"
+      }
+    },
+    {
+      "heading": "数据与训练",
+      "tldr": "预训练阶段的核心词汇集中在「数据质量」与「算力分配」两条线上。",
+      "table": {
+        "headers": ["术语", "含义", "关键点"],
+        "rows": [
+          ["DCLM / DataComp-LM", "大规模数据过滤基准", "用分类器过滤是当前性价比最高的手段"],
+          ["dedup", "去重", "MinHash / SimHash 去 n-gram 重复"],
+          ["去污染", "decontamination", "必须剔除训练集里的测试题"],
+          ["质量过滤", "quality filtering", "小模型当分类器打质量分"],
+          ["领域配比", "domain mixture", "不同领域数据的比例，显著影响模型风格与能力"],
+          ["Chinchilla", "Scaling Law 论文", "约 20 token/param 的经验最优"],
+          ["有效 token", "effective tokens", "真正带来能力提升的 token 数，低于总 token 数"],
+          ["合成数据", "synthetic data", "用模型生成的数据；需防坍缩"]
+        ],
+        "caption": "详见「数据 Pipeline」与「Scaling Law」两页"
+      }
+    },
+    {
+      "heading": "推理与部署",
+      "tldr": "推理阶段的术语围绕两个问题：访存与调度。",
+      "table": {
+        "headers": ["术语", "含义", "关键点"],
+        "rows": [
+          ["continuous batching", "连续批处理", "请求完成即换入新请求，避免 GPU 空转"],
+          ["prefix caching", "前缀缓存", "相同 prompt 前缀复用 KV"],
+          ["goodput", "有效吞吐", "满足延迟 SLO 的吞吐，比裸吞吐更有意义"],
+          ["memory wall", "内存墙", "访存带宽限制，算力再强也没用"],
+          ["speculative decoding", "投机解码", "小模型草拟 + 大模型批量验证"],
+          ["acceptance rate", "接受率", "投机解码的收益上限取决于它"],
+          ["chunked prefill", "分块预填充", "把长 prompt 切块，避免 TPOT 抖动"],
+          ["context parallel", "上下文并行", "长上下文跨卡切分"]
+        ],
+        "caption": "详见「推理引擎」「KV Cache」「投机解码」三页"
+      }
+    },
+    {
+      "heading": "后训练",
+      "tldr": "后训练的术语围绕「如何把偏好变成可学习信号」。",
+      "table": {
+        "headers": ["术语", "含义", "关键点"],
+        "rows": [
+          ["reward model", "奖励模型", "从偏好数据训练出的打分器"],
+          ["preference data", "偏好数据", "chosen / rejected 成对数据"],
+          ["KL penalty", "KL 惩罚", "约束策略不要偏离参考模型太远"],
+          ["cold start", "冷启动", "RL 前先用 SFT 让模型输出可读"],
+          ["reward hacking", "奖励作弊", "模型钻奖励模型的空子"],
+          ["synthesizing", "合成数据", "用强模型造训练数据"],
+          ["trajectory distillation", "轨迹蒸馏", "把 Agent 成功轨迹蒸馏成 SFT 数据"],
+          ["tool use / function call", "工具调用", "模型输出结构化调用参数"]
+        ],
+        "caption": "详见「SFT」「偏好对齐」「强化学习算法」「Agent 训练」四页"
+      }
+    },
+    {
+      "heading": "架构",
+      "tldr": "架构术语描述模型「长什么样」，决定了容量、上下文与感知能力。",
+      "table": {
+        "headers": ["术语", "含义", "关键点"],
+        "rows": [
+          ["decoder-only", "仅解码器架构", "当前主流；因果注意力"],
+          ["pre-LN / post-LN", "归一化位置", "pre-LN 训练更稳定，是事实标准"],
+          ["SwiGLU", "门控激活", "比 GELU 更强，略多算力"],
+          ["expert", "专家", "MoE 中的子网络"],
+          ["router / gating", "路由 / 门控", "决定 token 走哪些专家"],
+          ["load balancing", "负载均衡", "MoE 的核心难点"],
+          ["vision encoder", "视觉编码器", "多模态模型里处理图像的部分"],
+          ["projector", "投影层", "把视觉特征映射到语言空间"]
+        ],
+        "caption": "详见「架构设计」「MoE」「长上下文」「多模态」四页"
+      }
+    }
+  ]
+}

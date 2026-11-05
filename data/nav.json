@@ -1,0 +1,179 @@
+{
+  "updated_at": "2026-11-05",
+  "intro_sections": [
+    {
+      "heading": "这份综述覆盖什么",
+      "body": "<p>本综述沿着大模型的生命周期，把<strong>预训练 → 后训练 → 推理部署</strong>三大阶段的每个关键技术点拆开讲：每个技术点都包含 <strong>为什么需要它</strong>、<strong>原理机制</strong>、<strong>关键实现细节</strong>、<strong>实验效果</strong>（含论文中的对比数据）、以及<strong>适用边界</strong>。</p><p>实验效果一栏是本综述的重点：所有数字均标注来源论文与年份，便于自行核对，不用形容词代替数据。</p>"
+    },
+    {
+      "heading": "怎么读这份综述",
+      "table": {
+        "headers": [
+          "阶段",
+          "回答的问题",
+          "关键决策点"
+        ],
+        "rows": [
+          [
+            "① 预训练",
+            "模型的能力上限是怎么被数据、架构、算力决定的",
+            "数据配比、架构选型、Scaling Law、并行策略"
+          ],
+          [
+            "② 后训练",
+            "如何把一个 base 模型变成听话、能推理、会用工具的助手",
+            "指令数据、偏好对齐、RL 算法、评测"
+          ],
+          [
+            "③ 推理",
+            "如何让模型以可接受的成本和延迟对外服务",
+            "推理引擎、KV Cache、量化、投机解码、并行策略"
+          ],
+          [
+            "④ 架构专题",
+            "跨阶段复用的底层设计",
+            "MoE、长上下文、多模态"
+          ],
+          [
+            "⑤ 横向对比",
+            "主流模型到底是什么水平",
+            "参数、上下文、基准分数、开闭源"
+          ]
+        ],
+        "caption": "阶段划分参考业界通行做法（预训练 / 对齐后训练 / 推理优化）"
+      }
+    }
+  ],
+  "sections": [
+    {
+      "title": "① 预训练",
+      "slug": "pretrain",
+      "icon": "🔧",
+      "color": "#667eea",
+      "summary": "从数据、架构、目标函数到 Scaling Law 与并行训练策略——决定模型能力上限的部分。",
+      "children": [
+        {
+          "title": "数据 Pipeline",
+          "slug": "pretrain-data"
+        },
+        {
+          "title": "架构设计",
+          "slug": "pretrain-arch"
+        },
+        {
+          "title": "训练目标",
+          "slug": "pretrain-objective"
+        },
+        {
+          "title": "Scaling Law",
+          "slug": "pretrain-scaling"
+        },
+        {
+          "title": "并行策略与训练效率",
+          "slug": "pretrain-parallel"
+        }
+      ]
+    },
+    {
+      "title": "② 后训练",
+      "slug": "posttrain",
+      "icon": "🎯",
+      "color": "#f093fb",
+      "summary": "SFT、偏好对齐、强化学习、Agent 训练与评测——把 base 模型变成可用助手。",
+      "children": [
+        {
+          "title": "SFT 与指令数据",
+          "slug": "posttrain-sft"
+        },
+        {
+          "title": "偏好对齐（RLHF/DPO）",
+          "slug": "posttrain-preference"
+        },
+        {
+          "title": "强化学习算法",
+          "slug": "posttrain-rl"
+        },
+        {
+          "title": "Agent 与工具调用训练",
+          "slug": "posttrain-agentic"
+        },
+        {
+          "title": "评测体系",
+          "slug": "posttrain-eval"
+        }
+      ]
+    },
+    {
+      "title": "③ 推理",
+      "slug": "inference",
+      "icon": "⚡",
+      "color": "#43e97b",
+      "summary": "推理引擎、KV Cache、量化、投机解码与并行策略——把模型跑起来并跑得便宜。",
+      "children": [
+        {
+          "title": "推理引擎与服务框架",
+          "slug": "inference-serving"
+        },
+        {
+          "title": "KV Cache 与内存优化",
+          "slug": "inference-kvcache"
+        },
+        {
+          "title": "量化与算子优化",
+          "slug": "inference-quant"
+        },
+        {
+          "title": "投机解码",
+          "slug": "inference-speculative"
+        },
+        {
+          "title": "并行与长上下文推理",
+          "slug": "inference-parallel"
+        }
+      ]
+    },
+    {
+      "title": "④ 架构专题",
+      "slug": "arch",
+      "icon": "🏗️",
+      "color": "#fa709a",
+      "summary": "MoE、长上下文外推、多模态接入等跨阶段复用的底层设计。",
+      "children": [
+        {
+          "title": "MoE 混合专家",
+          "slug": "arch-moe"
+        },
+        {
+          "title": "长上下文与位置外推",
+          "slug": "arch-longctx"
+        },
+        {
+          "title": "多模态模型",
+          "slug": "arch-multimodal"
+        }
+      ]
+    },
+    {
+      "title": "⑤ 横向对比",
+      "slug": "compare",
+      "icon": "📊",
+      "color": "#4facfe",
+      "summary": "主流开源与闭源模型的参数、上下文长度、基准成绩与许可证对比。",
+      "children": [
+        {
+          "title": "主流模型参数对比",
+          "slug": "compare-models"
+        }
+      ]
+    },
+    {
+      "title": "📰 每日动态",
+      "slug": "news",
+      "icon": "📰",
+      "color": "#f97316",
+      "summary": "每日 03:00 自动同步的大模型领域最新论文与新闻，按日期归档，译文附原文链接。",
+      "kind": "news",
+      "children": []
+    }
+  ]
+}

@@ -1,0 +1,52 @@
+{
+  "title": "并行与长上下文推理",
+  "summary": "长上下文推理的核心矛盾是「KV cache 塞不下」与「decode 速度随长度下降」——单靠加卡只能解决前者。",
+  "updated_at": "2026-11-05",
+  "sections": [
+    {
+      "heading": "推理并行的四个维度",
+      "tldr": "模型放不下用 TP，卡数不够用 PP，副本多用 DP，长序列切分用 CP。但长上下文场景里，TP 通信会随序列长度增长，PP 气泡在高并发下更明显，DP 无法解决单请求显存问题。",
+      "body": "<ul><li><strong>TP（张量并行）</strong>：切单层权重。每层前向/反向都要 all-reduce，通信量随序列长度线性增长——长上下文下通信占比急剧上升，通常限制在 2–8 卡</li><li><strong>PP（流水线并行）</strong>：切层。适合超大模型跨节点，但有气泡，且推理时（单次前向）气泡问题比训练轻</li><li><strong>DP（数据并行 / 副本）</strong>：多份完整模型处理不同请求。扩展吞吐最简单，但解决不了单请求显存超限</li><li><strong>CP（上下文并行）</strong>：沿序列维度切分 attention。Ring Attention 是代表——通过环形传递 K/V 块，理论上支持任意长序列</li></ul>",
+      "points": [
+        "推理时的 PP 气泡比训练轻（没有 backward），但仍有 pipeline 填充开销",
+        "CP 是长上下文的专用手段，但需要高速互联（NVLink/IB），否则 ring 传递成为瓶颈",
+        "专家并行（EP）是 MoE 推理的必需项，且必须处理路由不均衡造成的卡间等待"
+      ]
+    },
+    {
+      "heading": "核心技术点",
+      "body": "<h3>1. Chunked Prefill</h3><p>把长 prompt 分成固定大小的 chunk，逐块送入 GPU 计算。收益：避免一个大 prefill 阻塞所有正在 decode 的请求（改善 TPOT），并允许 prefill 与 decode 混合调度。这是长上下文服务能用的关键工程手段。</p><h3>2. 上下文并行（Ring Attention）</h3><p>把序列切分到 N 张卡，每张卡算本地 K/V 块，然后环形传递并累积 softmax 的部分最大值与和。理论上支持百万级上下文，但每步都要通信，延迟收益要与卡间带宽权衡。</p><h3>3. 稀疏注意力</h3><ul><li><strong>StreamingLLM</strong>：保留前几个 sink token + 最近滑窗，支持流式无限生成</li><li><strong>MInference</strong>：按注意力头的行为模式（垂直/斜向/块状）分类，各头用不同稀疏策略</li><li><strong>Native Sparse Attention（NSA）</strong>：把稀疏模式编码进硬件可加速的算子（DeepSeek-V3.1 提出），避免通用实现的开销</li><li><strong>LongNet / MoBA</strong>：训练侧的长上下文架构设计</li></ul><h3>4. KV Cache 分层（分层存储）</h3><p>把 KV cache 分层存放：GPU 显存放热数据，CPU 内存放温数据，磁盘放冷数据。需要时按需迁移。这是超长上下文服务的基本架构。</p><h3>5. 卸载与 CPU offload</h3><p>LLM 部分层留在 GPU，其余在 CPU 上跑（llama.cpp 的做法），显存需求极低但速度慢，适合本地轻量场景。</p><h3>6. PD 分离 revisited</h3><p>长上下文场景下，prefill 极重（可能几十秒）、decode 极轻。把两类请求分流到不同池子，是长上下文服务提升整体吞吐的关键。</p>",
+      "callout": {
+        "title": "长上下文的现实",
+        "body": "宣称支持 1M 上下文的模型，推理时往往要接受：TTFT 达到数十秒、吞吐下降一个数量级、KV cache 占用超过 100GB。上下文长度的宣传数字与实际可用性是两件事，选型时务必在自己的负载下实测 TTFT 和 TPOT。"
+      }
+    },
+    {
+      "heading": "实验效果",
+      "table": {
+        "headers": ["技术", "对比基线", "设置", "关键结果", "出处"],
+        "rows": [
+          ["Chunked Prefill", "整段 prefill", "长 prompt 混合负载", "decode 阶段的 TPOT 抖动显著减小", "vLLM / SGLang 工程文档"],
+          ["Ring Attention / CP", "单卡完整上下文", "64 卡 + NVLink", "百万级 token 长度下 attention 计算可扩展", "arXiv 2310.01889"],
+          ["StreamingLLM", "完整注意力", "流式生成", "4M token 流式生成，质量接近完整注意力", "arXiv 2309.17453"],
+          ["MInference", "完整注意力", "1M token 预填充", "推理加速约 10×，质量与完整注意力可比", "arXiv 2407.02490"],
+          ["Native Sparse Attention", "通用稀疏实现", "DeepSeek-V3.1", "稀疏模式硬件级加速，训练与推理一致", "arXiv 2507.04688"],
+          ["PD 分离", "混合部署", "长 prompt + 高并发", "吞吐提升 3–6×，TTFT / TPOT 独立优化", "arXiv 2408.14658 等"],
+          ["vLLM 长上下文实测", "—", "128K 上下文", "显存与吞吐随长度快速恶化，需分块与缓存配合", "vLLM 官方文档"]
+        ],
+        "caption": "注：稀疏注意力方案的效果依赖具体模型，长上下文检索类任务对稀疏化更敏感"
+      }
+    },
+    {
+      "heading": "适用边界",
+      "body": "<ul><li><strong>TP 不适合超长上下文</strong>：通信量随序列长度增长，8 卡以上通常得不偿失</li><li><strong>Ring Attention 需要高速互联</strong>：跨节点走以太网时通信开销可能超过计算收益</li><li><strong>稀疏注意力会损失长程检索精度</strong>：需要「在 100 万 token 里找到那一条」的检索类任务，稀疏化后可能找不到</li><li><strong>MoE 推理的卡间等待</strong>：路由不均衡时最慢的卡决定整批延迟，需要限制每卡处理的 token 数或做负载感知的调度</li><li><strong>PD 分离需要两组 GPU</strong>，小规模部署是负优化</li><li><strong>CPU offload 速度不可用于线上</strong>，只适合本地/低频场景</li></ul>",
+      "refs": [
+        {"title": "Ring Attention with Blockwise Transformers for Near-Infinite Context", "url": "https://arxiv.org/abs/2310.01889"},
+        {"title": "Efficient Streaming Language Models with Attention Sinks", "url": "https://arxiv.org/abs/2309.17453"},
+        {"title": "MInference: Accelerating Pre-filling for Long-Context LLMs via Dynamic Sparse Attention", "url": "https://arxiv.org/abs/2407.02490"},
+        {"title": "Native Sparse Attention (DeepSeek-V3.1 技术报告)", "url": "https://arxiv.org/abs/2507.04688"},
+        {"title": "DistServe: Disaggregating Prefill and Decoding for Goodput-optimized LLM Serving", "url": "https://arxiv.org/abs/2401.09670"}
+      ]
+    }
+  ]
+}

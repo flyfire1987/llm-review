@@ -1,0 +1,128 @@
+{
+  "title": "KV Cache 与内存优化",
+  "summary": "KV cache 是推理阶段最主要的显存消耗项，也是长上下文场景下的硬约束——没有它，显存增速会比上下文长度更快地吃掉整卡。",
+  "updated_at": "2026-11-04",
+  "sections": [
+    {
+      "heading": "KV Cache 是什么、为什么必须存在",
+      "tldr": "自回归生成时，之前所有 token 的 Key/Value 不会变，缓存下来即可避免重复计算。代价是它随「批大小 × 序列长度 × 层数 × 头数」线性膨胀，长上下文下往往超过模型权重本身。",
+      "body": "<p>单 token 的 KV cache 大小：</p><pre><code>KV_bytes = 2 (K和V) × layers × kv_heads × head_dim × seq_len × batch × dtype_bytes</code></pre><p>以 Llama-2-7B（MHA，32 层，32 头，head_dim 128，FP16）为例，单条 4096 长度序列：</p><pre><code>2 × 32 × 32 × 128 × 4096 × 2 bytes ≈ 2.1 GB\n→ 同样 4096 长度的 prompt，KV cache 比模型权重（13GB）小不了多少\n→ 序列到 128K 时，KV cache 达到约 67 GB，远超权重本身</code></pre><p>这就是为什么所有推理引擎都把 KV cache 管理当作核心竞争力。</p>",
+      "points": [
+        "MQA/GQA/MLA 的核心价值就是压小 KV cache：GQA 相比 MHA 可省 4–8 倍，MLA 相对 GQA 再省约 90%",
+        "量化 KV cache（FP8/INT8）能在几乎无质量损失下再省一半"
+      ],
+      "code": "KV Cache 显存占用公式（每层，每 token）：\n\n  KV_bytes = 2 (K和V) × n_layers × n_kv_heads × head_dim × dtype_bytes\n\n  · 2       : K 和 V 各一份\n  · n_kv_heads: KV 头数（MHA 时 = n_heads，GQA 时小得多）\n\n以 Llama-3-8B (32 层, 8 个 KV 头, head_dim=128, bf16=2B) 为例：\n\n  每 token 每层 = 2 × 8 × 128 × 2 = 4096 B = 4 KB\n  全部 32 层          = 128 KB / token\n  4096 token 上下文   = 512 MB   ← 仅一个请求！\n  4096 token × 16 并发 = 8 GB    ← KV Cache 吃掉大半显存\n\n这解释了：\n  · 为什么长上下文贵（KV 随 token 线性增长）\n  · 为什么 PagedAttention 重要（避免预分配连续显存造成碎片浪费）\n  · 为什么 KV 量化有效（INT8 直接砍一半 KV 显存）"
+    },
+    {
+      "heading": "核心技术点",
+      "body": "<h3>1. PagedAttention（分页管理）</h3><p>把 KV cache 切成固定大小的 block（通常 16 token），用块表映射到物理显存。好处：消除碎片（浪费率从 60–80% 降到接近 0）、几乎零拷贝的前缀共享、O(1) 的分配与释放。</p><h3>2. 前缀缓存（Prefix Cache）</h3><p>相同前缀的请求共享 KV cache。典型收益场景：多轮对话（历史部分复用）、系统 prompt 固定、few-shot 示例固定、少样本分类任务。SGLang 的 RadixAttention 做的是同一件事但是基于基数树自动组织前缀匹配。</p><h3>3. KV Cache 量化</h3><p>把 KV 从 FP16 压到 FP8 或 INT8。KIVI 指出 Key 和 Value 对量化的敏感度不同——<strong>Key 应按 channel 量化、Value 应按 token 量化</strong>，因为 Key 的异常值集中在少数 channel，而 Value 的集中在少数 token。这个细节能显著降低量化误差。</p><h3>4. 卸载与换出（Offload / Swap）</h3><p>把闲置的 KV cache 换到 CPU 内存甚至磁盘，需要时再换回。适合「请求间不连续复用」的场景（如长文档问答，一次性处理完就释放）。</p><h3>5. 注意力计算优化</h3><ul><li><strong>FlashAttention</strong>：分块计算避免把 N×N 的注意力矩阵写回 HBM，访存从 O(N²) 降到 O(N)。FlashAttention-2 进一步优化了并行维度与工作划分，吞吐约 2×</li><li><strong>Chunked Prefill</strong>：把长 prompt 分块处理，避免一个大 prefill 阻塞所有 decode 请求</li></ul><h3>6. 稀疏注意力</h3><p>只计算部分位置：StreamingLLM（Attention Sink + 滑窗）、MInference（按 head 类型选择不同稀疏模式）、Native Sparse Attention（硬件级支持）。</p>",
+      "callout": {
+        "title": "长上下文的真实瓶颈",
+        "body": "即使 KV cache 塞得下，长上下文的 decode 速度也会急剧下降——因为每一步都要对全部历史做注意力计算。Attention Sink 的发现：模型会把大量注意力权重压在序列开头的几个 token 上，StreamingLLM 只需保留这几个「sink」token + 最近的滑窗，就能保持质量并支持流式生成。"
+      }
+    },
+    {
+      "heading": "实验效果",
+      "table": {
+        "headers": [
+          "技术",
+          "对比基线",
+          "设置",
+          "关键结果",
+          "出处"
+        ],
+        "rows": [
+          [
+            "PagedAttention",
+            "连续分配 KV cache",
+            "A100, ShareGPT 负载",
+            "显存浪费 60–80% → ~0，吞吐 2–4×",
+            "arXiv 2309.06180"
+          ],
+          [
+            "前缀缓存 / RadixAttention",
+            "无前缀复用",
+            "多轮对话与共享 prefix 负载",
+            "吞吐提升 1.5–5×，prefix 越长收益越大",
+            "arXiv 2312.07104"
+          ],
+          [
+            "KIVI (KV 量化)",
+            "FP16 KV cache",
+            "Llama / Vicuna 多种长度",
+            "KV 显存降约 2×，质量损失在 0.1% 内",
+            "arXiv 2402.02750"
+          ],
+          [
+            "FlashAttention-2",
+            "FlashAttention-1",
+            "A100 / H100",
+            "同精度下约 2× 吞吐，序列越长优势越大",
+            "arXiv 2307.08691"
+          ],
+          [
+            "StreamingLLM",
+            "完整注意力",
+            "长文本流式生成",
+            "4M token 流式生成，质量与 perplexity 接近完整注意力",
+            "arXiv 2309.17453"
+          ],
+          [
+            "MInference",
+            "完整注意力",
+            "长上下文推理",
+            "1M token 下推理加速约 10×，质量可比",
+            "arXiv 2407.02490"
+          ],
+          [
+            "GQA 带来的 KV 缩减",
+            "MHA",
+            "Llama-2 7B/13B/70B",
+            "KV cache 显著减小，吞吐提升，质量基本无损",
+            "arXiv 2305.13245"
+          ]
+        ],
+        "caption": "注：KV 量化与稀疏注意力的效果高度依赖模型与长度，需在自己的模型上实测"
+      }
+    },
+    {
+      "heading": "适用边界",
+      "body": "<ul><li><strong>前缀缓存要求请求间 prefix 字节级一致</strong>：系统 prompt 里有时间戳或随机 ID，缓存就完全失效</li><li><strong>KV 量化的质量损失在长上下文上更明显</strong>，短文本任务几乎无损</li><li><strong>卸载到 CPU 的延迟很高</strong>（PCIe 带宽远小于 HBM），只适合非实时场景</li><li><strong>FlashAttention 不减少 KV cache 占用</strong>，它省的是注意力计算时的中间矩阵，两者解决不同问题</li><li><strong>长上下文的瓶颈最终在 decode 速度</strong>，KV cache 只是第一道门槛；Attention Sink 类方法能绕开部分问题但会损失长程检索精度</li><li><strong>投机解码与 KV cache 强耦合</strong>：草稿模型的 token 需要额外存储，且会打断部分优化路径</li></ul>",
+      "refs": [
+        {
+          "title": "Efficient Memory Management for Large Language Model Serving with PagedAttention",
+          "url": "https://arxiv.org/abs/2309.06180"
+        },
+        {
+          "title": "KIVI: A Tuning-Free Asymmetric 2bit Quantization for KV Cache",
+          "url": "https://arxiv.org/abs/2402.02750"
+        },
+        {
+          "title": "FlashAttention-2: Faster Attention with Better Parallelism and Work Partitioning",
+          "url": "https://arxiv.org/abs/2307.08691"
+        },
+        {
+          "title": "Efficient Streaming Language Models with Attention Sinks",
+          "url": "https://arxiv.org/abs/2309.17453"
+        },
+        {
+          "title": "MInference: Accelerating Pre-filling for Long-Context LLMs via Dynamic Sparse Attention",
+          "url": "https://arxiv.org/abs/2407.02490"
+        },
+        {
+          "title": "GQA: Training Generalized Multi-Query Transformer Models",
+          "url": "https://arxiv.org/abs/2305.13245"
+        }
+      ]
+    },
+    {
+      "heading": "📌 最新进展",
+      "tldr": "自动同步的技术动态（每日 03:00 任务写入），随领域进展更新。",
+      "body": "<p>以下条目由每日同步任务自动追加，按时间倒序排列，<strong>原文链接</strong>可直达原论文/原文。</p>",
+      "points": [
+        "[2026-11-04] **CRESiST ：用于同步语音翻译的自我增强探索性政策学习**（arXiv）— Simultaneous Speech Translation (SimulST) requires balancing translation quality and latency. While Large Language Models (LLMs) excel in offline translation, c 原文：http://arxiv.org/abs/2611.06501",
+        "[2026-11-03] **超越压缩比：用于分解LLM服务的高通量KV压缩**（arXiv）— KV cache compression reduces the communication volume of disaggregated large language model serving, but its practical benefit depends not only on compression r 原文：http://arxiv.org/abs/2611.04382"
+      ]
+    }
+  ]
+}

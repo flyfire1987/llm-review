@@ -1,0 +1,125 @@
+{
+  "sections": [
+    {
+      "body": "<p>大模型训练中有一个反复被验证的结论：<strong>同等算力预算下，数据质量比数据数量更关键，但两者都要</strong>。早期实践倾向于「无脑抓 CommonCrawl + 尽量多」；随后的系列工作（CCNet、RefinedWeb、FineWeb、DCLM）系统性地证明了清洗流程本身能带来与「模型放大几倍」相当的效果提升。</p><p>数据 pipeline 的完整链路大致是：</p><ul><li><strong>采集</strong>：网页、书籍、代码、论文、百科、论坛</li><li><strong>规范化</strong>：去 HTML boilerplate、语言识别、编码修复</li><li><strong>质量过滤</strong>：分类器打分 / 启发式规则 / 模型打分</li><li><strong>去重</strong>：精确去重 + 模糊去重</li><li><strong>去污染</strong>：剔除与评测集重叠样本</li><li><strong>配比</strong>：各领域混合比例</li><li><strong>分片与打包</strong>：packing 成固定长度序列</li></ul>",
+      "heading": "为什么数据是第一位",
+      "points": [
+        "质量过滤：启发式（字数、符号比、停用词比例）+ 分类器（FastText / Perplexity-based）+ LLM 打分",
+        "去重是性价比最高的步骤，精确去重用文件哈希，模糊去重用 MinHash + LSH 近似",
+        "去污染（decontamination）是训练可信度的底线，漏做会导致评测分数虚高"
+      ],
+      "tldr": "同一架构与算力下，高质量清洗数据比粗放堆量能显著提升同规模模型的表现。FineWeb 实验显示，同样 15B token 训练，Cleaned 版本在多项基准上全面超过原始 CommonCrawl。"
+    },
+    {
+      "body": "<h3>1. 质量过滤</h3><p>早期靠启发式规则（RefinedWeb 的规则、Gopher 的启发式），后来转向<b>专门训练的分类器</b>：FineWeb 用 FastText 在 40 亿 token 上训练质量分类器，FineWeb-Edu 则进一步用 LLM 标注训练出「教育性」分类器。</p><h3>2. 去重</h3><p>分两层：<strong>精确去重</strong>（同一文档多次出现，用哈希集合去除）解决数据膨胀；<strong>模糊去重</strong>（Near-duplicate，如模板化网页、同一新闻的多处转载）用 <strong>MinHash + LSH</strong> 做近似匹配。The Pile 的去重实验显示，去重后模型困惑度下降、重复生成减少。</p><h3>3. 去污染</h3><p>用 13-gram（或 8-gram）匹配方式检查训练数据是否包含 benchmark 测试题，命中即剔除。这一步不做，benchmark 分数就失去参考意义。</p><h3>4. 数据配比（Data Mixture）</h3><p>不同领域的 token 比例直接决定模型的能力偏向。DoReMi 用代理模型优化配比；Data Mixing Laws 给出经验公式：<code>loss = E + exp(C / N^α)</code> 形式的幂律规律，α ≈ 0.3。</p><h3>5. 长文本扩展</h3><p>LongNet、位置编码外推等方法让模型在 10 亿 token 级语料上训练，为后续百万级上下文打基础。</p>",
+      "callout": {
+        "body": "去污染时如果只做精确匹配，会漏掉改写题和选择题的变形。这类「语义污染」近年越来越多，评测时建议用 n-gram + 语义相似度双保险，并对新出题做小样本人工核查。",
+        "title": "踩坑提示"
+      },
+      "heading": "核心技术点"
+    },
+    {
+      "body": "<p>下面是几组有代表性的对比数据，可以看到清洗流程对下游表现的实际影响：</p>",
+      "heading": "实验效果",
+      "table": {
+        "caption": "注：不同工作的评测设置不同，横向比较需注意 baseline 与 token 预算是否对齐",
+        "headers": [
+          "工作",
+          "数据集 / 规模",
+          "对比基线",
+          "关键结果",
+          "出处"
+        ],
+        "rows": [
+          [
+            "FineWeb",
+            "15B tokens, 1.3B 模型",
+            "CommonCrawl 原始",
+            "HellaSwag、MMLU、ARC 全面提升",
+            "NeurIPS 2024 Datasets & Benchmarks"
+          ],
+          [
+            "FineWeb-Edu",
+            "1.3T tokens 级别",
+            "FineWeb 随机采样",
+            "训练出的 LLM 在 MMLU / MATH / GSM8K 显著优于 FineWeb 版",
+            "NeurIPS 2024 Datasets & Benchmarks"
+          ],
+          [
+            "DCLM",
+            "与 MAP-Neo 同等算力预算",
+            "FLAN 配方",
+            "MMLU 64.0 vs 56.2；Raw 语料可超过 FLAN 配方",
+            "arXiv 2406.11794"
+          ],
+          [
+            "Data Mixing Laws",
+            "多领域配比实验",
+            "随机配比",
+            "预测损失偏差 <1%，可据此外推最优配比",
+            "arXiv 2403.16952"
+          ],
+          [
+            "DoReMi",
+            "多领域优化配比",
+            "Human / Uniform 配比",
+            "下游平均准确率提升约 2.7 个百分点",
+            "arXiv 2305.10429"
+          ],
+          [
+            "The Pile 去重",
+            "825 GiB 语料",
+            "去重前",
+            "困惑度下降，重复生成与近重复输出明显减少",
+            "arXiv 2101.00027"
+          ]
+        ]
+      }
+    },
+    {
+      "body": "<ul><li><strong>代码数据</strong>的清洗策略与自然语言差异很大（去重阈值、文档结构、许可证），直接套用网页清洗流程会损失大量有效代码样本</li><li><strong>小模型</strong>（&lt;1B）对数据质量的敏感度低于大模型，但<b>数据重复</b>的危害反而更大（小模型更容易过拟合重复模式）</li><li><strong>领域垂类</strong>（医疗、法律）不能只用通用质量分类器，需要领域内的偏好标注，否则通用「可读性」评分会误杀专业内容</li><li><strong>多语言</strong>场景下，资源丰富语言的高质量数据往往更少，低资源语言用机器翻译扩充会引入噪声</li></ul>",
+      "heading": "适用边界与失效场景",
+      "refs": [
+        {
+          "title": "FineWeb: decanting the web for the finest text data at scale (NeurIPS 2024)",
+          "url": "https://arxiv.org/abs/2406.17557"
+        },
+        {
+          "title": "FineWeb-Edu: an educational quality classifier for web text",
+          "url": "https://huggingface.co/blog/FineWeb-Edu"
+        },
+        {
+          "title": "DataComp-LM / DCLM: In search of the next generation of language model pretraining datasets",
+          "url": "https://arxiv.org/abs/2406.11794"
+        },
+        {
+          "title": "Data Mixing Laws: Optimizing Data Mixtures by Predicting Language Modeling Rates",
+          "url": "https://arxiv.org/abs/2403.16952"
+        },
+        {
+          "title": "DoReMi: Optimizing Data Mixtures Speeds Up Language Model Pretraining",
+          "url": "https://arxiv.org/abs/2305.10429"
+        },
+        {
+          "title": "The Pile: An 800GB Dataset of Diverse Text for Language Modeling (arXiv 2101.00027)",
+          "url": "https://arxiv.org/abs/2101.00027"
+        },
+        {
+          "title": "Document-level Deduplication (Lee et al.)",
+          "url": "https://arxiv.org/abs/2107.06499"
+        }
+      ]
+    },
+    {
+      "heading": "📌 最新进展",
+      "tldr": "自动同步的技术动态（每日 03:00 任务写入），随领域进展更新。",
+      "body": "<p>以下条目由每日同步任务自动追加，按时间倒序排列，<strong>原文链接</strong>可直达原论文/原文。</p>",
+      "points": [
+        "[2026-11-03] **SlackBench ：在基于真实代码库的协作项目上对Agents进行基准测试**（arXiv）— AI Agents are becoming digital coworkers that can browse the web, write code, run experiments, and assist humans over extended horizons. Yet existing benchmarks 原文：http://arxiv.org/abs/2611.05512"
+      ]
+    }
+  ],
+  "summary": "数据质量对模型能力的贡献远超参数量——这是整个训练链路里投入产出比最高、也最容易被忽视的一环。",
+  "title": "预训练数据 Pipeline",
+  "updated_at": "2026-11-03"
+}

@@ -1,0 +1,91 @@
+{% extends 'base.html' %}
+{% set active_slug = 'news' %}
+{% block title %}{{ date_str }} 动态 · 大模型综述{% endblock %}
+
+{% block content %}
+<div class="page news-page">
+
+  <header class="page-head">
+    <div class="head-left">
+      <h1 class="page-title">📰 {{ date_str }}</h1>
+      <p class="page-summary">当日收录 {{ day['items'] | length }} 条大模型领域动态。</p>
+      <div class="page-meta">每日 03:00 自动同步 · 译文附原文链接</div>
+    </div>
+    <div class="head-right">
+      <a class="btn btn-ghost" href="{{ script_name }}/news">← 全部动态</a>
+    </div>
+  </header>
+
+  <nav class="crumbs">
+    <a href="{{ script_name }}/">总览</a>
+    <span class="sep">/</span>
+    <a href="{{ script_name }}/news">每日动态</a>
+    <span class="sep">/</span>
+    <span class="crumb-cur">{{ date_str }}</span>
+  </nav>
+
+  <div class="doc">
+    {% if day['items'] %}
+      <div class="news-cards">
+        {% for it in day['items'] %}
+          <article class="news-card">
+            <div class="news-card-head">
+              <span class="news-no">#{{ loop.index }}</span>
+              <span class="tag tag-src">{{ it.source }}</span>
+              {% if it.merged_into %}
+                <span class="tag tag-merge">已合并进「{{ it.topics[0].title if it.topics else it.merged_into }}」</span>
+              {% endif %}
+            </div>
+
+            <h3 class="news-card-title">
+              <a href="{{ it.url }}" target="_blank" rel="noopener">{{ it.title_zh }}</a>
+            </h3>
+
+            <div class="news-en">{{ it.title_en }}</div>
+
+            {% if it.note %}
+              <p class="news-note">{{ it.note }}</p>
+            {% endif %}
+
+            <div class="news-card-foot">
+              <a class="news-link" href="{{ it.url }}" target="_blank" rel="noopener">
+                阅读原文 →
+              </a>
+              {% if it.authors %}
+                <span class="news-authors">{{ it.authors | join(', ') }}</span>
+              {% endif %}
+            </div>
+
+            {% if it.topics %}
+              <div class="news-meta">
+                {% for t in it.topics %}
+                  <span class="tag">{{ t.title }}</span>
+                {% endfor %}
+              </div>
+            {% endif %}
+          </article>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="empty-hint">当天没有收录内容。</div>
+    {% endif %}
+  </div>
+
+  <!-- 上下期 -->
+  <nav class="pager">
+    {% if prev_date %}
+      <a class="pager-link prev" href="{{ script_name }}/news/{{ prev_date }}">
+        <span class="pager-label">← 更早</span>
+        <span class="pager-title">{{ prev_date }}</span>
+      </a>
+    {% else %}<span></span>{% endif %}
+    {% if next_date %}
+      <a class="pager-link next" href="{{ script_name }}/news/{{ next_date }}">
+        <span class="pager-label">更新 →</span>
+        <span class="pager-title">{{ next_date }}</span>
+      </a>
+    {% endif %}
+  </nav>
+
+</div>
+{% endblock %}

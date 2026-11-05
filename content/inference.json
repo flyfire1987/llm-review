@@ -1,0 +1,46 @@
+{
+  "title": "推理总览",
+  "summary": "推理阶段的本质是「访存瓶颈下的调度问题」——所有优化手段都在回答同一个问题：如何让权重和 KV cache 被更有效地利用。",
+  "updated_at": "2026-11-05",
+  "sections": [
+    {
+      "heading": "推理优化的核心矛盾",
+      "tldr": "Decode 阶段是访存瓶颈（算力用不满），所以优化方向是「减少访存」和「提高并发」——量化压权重、KV Cache 管理省显存、投机解码提高算力利用率、continuous batching 提高吞吐。",
+      "body": "<p>Prefill 与 decode 的算力强度差异，是理解全部推理优化的钥匙：</p><pre><code>Prefill（处理 prompt）:  一次算 N 个 token，矩阵乘法规模大 → 算力瓶颈\nDecode（逐 token 生成）:  一次算 1 个 token，要读全部权重 → 访存瓶颈</code></pre><p>由此得到优化清单：</p><ul><li><strong>减少访存</strong>：量化（权重/激活/KV）、GQA/MLA（结构上减小 KV）</li><li><strong>提高并发</strong>：continuous batching、PD 分离、前缀缓存</li><li><strong>提高算力利用率</strong>：投机解码（把访存受限的 decode 变成算力受限）、chunked prefill（改善调度）</li><li><strong>减少计算量</strong>：稀疏注意力、量化感知</li></ul>",
+      "points": [
+        "买更多 GPU 提升的是总吞吐，对单请求延迟（TPOT）帮助有限",
+        "Goodput（满足 SLO 的吞吐）比裸吞吐更有参考价值"
+      ]
+    },
+    {
+      "heading": "优化手段速查",
+      "table": {
+        "headers": ["手段", "解决什么", "主要代价", "详见"],
+        "rows": [
+          ["Continuous Batching", "GPU 空转浪费", "调度复杂度", "推理引擎"],
+          ["PagedAttention", "KV cache 碎片（浪费 60–80%）", "需定制 kernel", "KV Cache"],
+          ["前缀缓存", "重复 prefix 重算", "要求 prefix 字节级一致", "KV Cache"],
+          ["KV Cache 量化（KIVI）", "长上下文 KV 显存", "少量质量损失", "KV Cache"],
+          ["GQA / MLA", "KV cache 结构膨胀", "极小质量损失", "架构设计"],
+          ["权重量化（GPTQ/AWQ）", "权重访存量", "精度损失（INT4 较明显）", "量化与算子优化"],
+          ["FP8 / NVFP4", "访存量 + 硬件加速", "需新硬件支持", "量化与算子优化"],
+          ["FlashAttention-2", "注意力中间矩阵访存", "需定制 kernel", "量化与算子优化"],
+          ["投机解码", "decode 算力闲置", "接受率依赖 + 额外显存", "投机解码"],
+          ["PD 分离", "长 prompt 阻塞 decode", "需要两组 GPU", "并行与长上下文推理"],
+          ["Chunked Prefill", "长 prompt 的 TPOT 抖动", "调度复杂度", "并行与长上下文推理"],
+          ["稀疏注意力", "长上下文注意力开销", "长程检索精度下降", "并行与长上下文推理"],
+          ["Context Parallel", "单卡放不下长上下文", "需高速互联", "并行与长上下文推理"]
+        ],
+        "caption": "按收益排序：先上 continuous batching + PagedAttention，再考虑量化与投机解码"
+      }
+    },
+    {
+      "heading": "指标体系",
+      "body": "<p>评估部署质量至少要同时看四个数：</p><table><tr><th>指标</th><th>含义</th><th>谁关心</th></tr><tr><td>TTFT</td><td>首 token 延迟</td><td>交互式产品（对话）</td></tr><tr><td>TPOT</td><td>每 token 延迟</td><td>交互式产品（流畅度）</td></tr><tr><td>吞吐 (tokens/s)</td><td>总输出速率</td><td>成本核算</td></tr><tr><td>Goodput</td><td>满足 SLO 的吞吐</td><td>容量规划（最有用）</td></tr></table><p>常见误区：用「吞吐很高」来证明部署好——如果 TPOT 已经到 2 秒/token，业务上就是失败的。</p>",
+      "callout": {
+        "title": "优化顺序建议",
+        "body": "① 选对引擎（vLLM / SGLang）→ ② 开 continuous batching + 前缀缓存 → ③ 上 INT8/FP8 量化 → ④ 视场景加投机解码 → ⑤ 高并发场景做 PD 分离 → ⑥ 最后才考虑稀疏注意力等需要重训的方案。"
+      }
+    }
+  ]
+}

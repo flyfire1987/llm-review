@@ -1,0 +1,120 @@
+{
+  "title": "MoE 混合专家",
+  "summary": "MoE 用「稀疏激活」把参数量与计算量解耦——这是当前唯一能在算力不变的前提下放大模型容量的架构路线。",
+  "updated_at": "2026-11-03",
+  "sections": [
+    {
+      "heading": "核心思想",
+      "tldr": "每个 token 只路由到 Top-k 个专家（通常 k=8，总专家数 64–256），其余专家不参与计算。于是总参数量可以做到计算量的 5–20 倍。",
+      "body": "<p>稀疏 MoE 层：</p><pre><code>router: h → logits (E 维) → softmax → Top-k 选择\noutput = Σ_{i∈Top-k} g_i · Expert_i(h)      # g_i 是路由权重</code></pre><p>关键指标：</p><ul><li><strong>激活参数量</strong>：每 token 实际参与计算的参数量，决定推理算力</li><li><strong>总参数量</strong>：决定模型容量与知识存储</li></ul><p>典型比例：Switch Transformer（1.6T 总参，激活 ~15B）、DeepSeek-V3（671B 总参，激活 37B，约 5.5%）。</p>",
+      "points": [
+        "MoE 的价值是「容量大但算力小」，代价是显存、通信与部署复杂度",
+        "训练效率高但推理不一定省：显存仍要装下全部专家"
+      ],
+      "code": "MoE 的稀疏激活机制（以 Switch Transformer 为例）：\n\n  输入 token x\n    ↓\n  Router (线性层) → 对每个专家算一个分数\n    ↓  Softmax → 取 Top-K 个专家（K 通常为 1 或 2）\n    ↓\n  y = Σ_{i ∈ Top-K} g_i · FFN_i(x)     ← 只有 K 个专家被激活\n\n容量与负载均衡：\n  每个专家有固定容量 capacity = (tokens × K) / n_experts\n  若某专家收到的 token 超过 capacity → 被「丢弃」(dropped)\n  丢弃的 token 直接走残差路径（不经过 FFN）\n\n  Load Balancing Loss = n_experts · Σ_i (f_i · P_i)\n\n  f_i : 专家 i 实际处理的 token 占比\n  P_i : router 给专家 i 的平均概率\n  理想情况 f_i = P_i = 1/n_experts，损失为 1\n\n为什么要这个 loss：\n  没有它，router 会「赢家通吃」——少数专家被反复选中，\n  另一些专家永远得不到训练，最终变成死专家，参数白费。"
+    },
+    {
+      "heading": "核心技术点",
+      "body": "<h3>1. 负载均衡</h3><p>路由天然会塌陷（热门专家过载、其余闲置）。三类解法：</p><ul><li><strong>辅助损失</strong>：在训练损失里加惩罚项强制专家使用率均衡（Switch Transformer、GLaM）</li><li><strong>容量因子 + Token Dropping</strong>：限制每专家处理 token 数，超出的直接丢弃（Switch 的做法，效率高但有信息损失）</li><li><strong>无辅助损失的均衡</strong>：DeepSeek-V3 用 <strong>bias 调整</strong>——给每个专家一个可学习的偏置，路由时按 <code>score = softmax(logit) + bias</code> 排序，训练后把 bias 设为各专家的负载，让负载自然均衡</li></ul><h3>2. 路由粒度</h3><ul><li><strong>粗粒度（Token-choice）</strong>：每个 token 选 Top-k 专家。Switch、GLaM</li><li><strong>细粒度（Expert-choice）</strong>：每个专家选 Top-n 个 token。天然均衡（每个专家负载固定），但需要 token 与专家的全局配对，实现复杂（需要 capacity-based 调度）</li></ul><h3>3. 细粒度专家（Fine-grained Expert）</h3><p>把专家切得更小更多：DeepSeek-V3 用 256 个专家、每个专家选 8 个（而非 64 选 8）。好处是<strong>组合空间更大</strong>（C(256,8) 远大于 C(64,8)），知识容量与专业化程度更高，同时激活参数量不变。</p><h3>4. 共享专家（Shared Expert）</h3><p>保留一组所有 token 都激活的共享专家，负责通用知识，路由专家专注差异化知识。DeepSeek-V3 用了 1 个共享专家 + 256 个路由专家。</p><h3>5. 路由器优化</h3><p><strong>Router Z-Loss</strong>：给路由 logits 加 L2 惩罚，稳定路由分布、防止 logits 过大导致的训练不稳定。</p><h3>6. 训练与推理的差异</h3><p>训练需要 EP（专家并行）+ All-to-All 通信，推理时：</p><ul><li>显存必须装下<strong>全部</strong>专家（这不是稀疏计算能省的）</li><li>需要 EP 才能把专家分布到多卡</li><li>路由不均衡会造成<strong>卡间等待</strong>——最慢的卡决定整批延迟</li></ul><p>这是 MoE 部署比稠密模型复杂得多的根本原因。</p>",
+      "callout": {
+        "title": "一个常见误解",
+        "body": "MoE 不是「显存也省了」。总参数全部要驻留显存（除非配合专家卸载，那会引入通信延迟）。MoE 省的是<strong>算力</strong>和<strong>训练时的显存（通过 EP 切分）</strong>，推理时的显存账要单独算。"
+      }
+    },
+    {
+      "heading": "实验效果",
+      "table": {
+        "headers": [
+          "工作",
+          "对比基线",
+          "设置",
+          "关键结果",
+          "出处"
+        ],
+        "rows": [
+          [
+            "Switch Transformer",
+            "T5-Base / T5-XXL",
+            "7× 速度或 7× 算力效率提升",
+            "单专家预训练质量超过 T5-XXL",
+            "arXiv 2101.03961"
+          ],
+          [
+            "GLaM",
+            "稠密 GPT-3",
+            "1.2T 参数 MoE",
+            "训练损失约为稠密模型的 1/3，效果更优",
+            "arXiv 2112.06932"
+          ],
+          [
+            "ST-MoE",
+            "GLaM 等",
+            "稳定性分析",
+            "提出负载均衡损失与 z-loss 稳定训练",
+            "arXiv 2202.08906"
+          ],
+          [
+            "DeepSeek-V2",
+            "DeepSeek 67B 稠密",
+            "236B 总参 / 21B 激活",
+            "训练成本降低约 1/3，MLA 使 KV cache 降 93.3%",
+            "arXiv 2405.04434"
+          ],
+          [
+            "DeepSeek-V3",
+            "DeepSeek-V2",
+            "671B 总参 / 37B 激活",
+            "训练效率大幅提升，激活参数仅占 5.5%",
+            "arXiv 2412.19437"
+          ],
+          [
+            "Mixtral 8x7B",
+            "Llama-2 70B",
+            "46.7B 总参 / 12.9B 激活",
+            "推理速度约为同尺寸稠密模型 6×",
+            "arXiv 2401.04088"
+          ]
+        ],
+        "caption": "注：MoE 的「算力效率」优势在推理端不完全成立，因为显存与通信成本上升"
+      }
+    },
+    {
+      "heading": "适用边界",
+      "body": "<ul><li><strong>不是所有任务都需要 MoE</strong>：小模型（如 &lt;8B）用稠密模型更简单、部署成本更低</li><li><strong>推理显存不省</strong>：全专家驻留显存，1TB 显存起步，硬件门槛高</li><li><strong>路由不均衡是长期难题</strong>：训练时用 bias/损失解决，推理时仍需处理卡间等待</li><li><strong>All-to-All 通信是瓶颈</strong>：EP 部署需要高带宽互联，跨节点扩展困难</li><li><strong>细粒度专家的优势在推理端会打折</strong>：更多专家意味着更复杂的调度与更多小 kernel，GPU 利用率可能下降</li><li><strong>小 batch 场景优势不大</strong>：MoE 的算力优势需要足够 batch 才能兑现，而显存压力反而恒定存在</li></ul>",
+      "refs": [
+        {
+          "title": "Switch Transformers: Scaling to Trillion Parameter Models",
+          "url": "https://arxiv.org/abs/2101.03961"
+        },
+        {
+          "title": "GLaM: Efficient Scaling of Language Models with Mixture-of-Experts",
+          "url": "https://arxiv.org/abs/2112.06932"
+        },
+        {
+          "title": "ST-MoE: Designing Stable and Transferable Sparse Expert Models (Router Z-Loss)",
+          "url": "https://arxiv.org/abs/2202.08906"
+        },
+        {
+          "title": "DeepSeek-V2: A Strong, Economical, and Efficient Mixture-of-Experts Language Model",
+          "url": "https://arxiv.org/abs/2405.04434"
+        },
+        {
+          "title": "DeepSeek-V3 Technical Report",
+          "url": "https://arxiv.org/abs/2412.19437"
+        },
+        {
+          "title": "Mixtral of Experts (Mistral)",
+          "url": "https://arxiv.org/abs/2401.04088"
+        }
+      ]
+    },
+    {
+      "heading": "📌 最新进展",
+      "tldr": "自动同步的技术动态（每日 03:00 任务写入），随领域进展更新。",
+      "body": "<p>以下条目由每日同步任务自动追加，按时间倒序排列，<strong>原文链接</strong>可直达原论文/原文。</p>",
+      "points": [
+        "[2026-11-03] **GC-MoE ：通过CUDA Green Context与FP8/FP4分组GEMM重叠的专家并行Token调度**（arXiv）— Under expert parallelism, mixture-of-experts (MoE) layers pay all-to-all token dispatch, grouped GEMMs, and a combine step in every layer. In decode each rank h 原文：http://arxiv.org/abs/2611.04222"
+      ]
+    }
+  ]
+}

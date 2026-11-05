@@ -1,0 +1,52 @@
+{
+  "title": "长上下文与位置外推",
+  "summary": "把上下文从 4K 扩到 128K 靠的不是训练时多喂数据，而是位置编码的插值与注意力机制的改造。",
+  "updated_at": "2026-11-05",
+  "sections": [
+    {
+      "heading": "为什么上下文扩不上去",
+      "tldr": "RoPE 的位置编码依赖相对位置差，超出训练长度后注意力会退化到分布外区域，表现是「前面记得、后面全忘」。解决方案分两派：插值（压缩位置）与改造注意力（换机制）。",
+      "body": "<p>RoPE 的问题：位置编码是 <code>sin/cos</code> 形式，在训练长度内有充分覆盖；一旦推理时位置索引超出训练范围，高频分量对应的相位进入未见区域，注意力分数失真。</p><p>两条主要路线：</p><ul><li><strong>插值类</strong>：不改变模型结构，改造位置编码让长序列「看起来」像在短序列内</li><li><strong>注意力改造类</strong>：保留原始位置编码，改造注意力计算方式让它能处理长序列</li></ul>",
+      "points": [
+        "训练时直接用长序列（扩展训练）效果最好，但成本极高——Most techniques 都是「短序列训练 + 推理时外推」",
+        "外推后通常还需做少量长样本微调（长文本微调数据）才能恢复质量"
+      ]
+    },
+    {
+      "heading": "核心技术点",
+      "body": "<h3>1. 位置插值（Position Interpolation）</h3><p>核心：把位置索引从 [0, L) 线性映射到 [0, L/λ)，让模型看到的位置始终在训练分布内。</p><pre><code>位置缩放因子 λ = L_target / L_train\n高频分量调整: W' = W · λ^(d/(d-2))</code></pre><p>代价：相邻 token 的位置分辨率下降，短距离信息精度受损。</p><h3>2. NTK-aware Scaling</h3><p>直觉：RoPE 的高频分量编码近距离信息、应该保持不变；低频分量编码长距离信息、可以压缩。NTK-aware 通过调整 base 频率实现这个效果，比线性插值保真度更高。</p><h3>3. YaRN</h3><p>把频谱分成两部分处理：<strong>注意力sink 相关的低频部分用 NTK-aware 插值，局部相关的部分保持原样</strong>，再配合温度缩放修正注意力分布的锐度。在 Llama 系列上验证有效，是目前的主流选择之一。</p><h3>4. LongRoPE</h3><p>非均匀位置插值：按维度分组，不同组用不同缩放因子，并配合分阶段扩展（先扩到 2K，再逐步到 32K、256K），渐进式微调。</p><h3>5. Attention Sink（注意力汇）</h3><p>一个反直觉的发现：模型会把<strong>大量注意力权重压在序列开头的几个 token 上</strong>，即使它们内容无意义。StreamingLLM 证明只要保留这几个 sink token + 最近滑窗，就能实现流式无限生成且质量不降。</p><h3>6. 稀疏与线性注意力</h3><ul><li><strong>Longformer / BigBird</strong>（早期）：稀疏注意力模式</li><li><strong>线性注意力</strong>：把 softmax 核换成可分解形式，复杂度降到 O(N)，但表达力下降，主流大模型未采纳</li><li><strong>Native Sparse Attention</strong>：把压缩 + 滑窗 + 块内选择三种模式编码进硬件算子</li></ul><h3>7. 训练侧扩展</h3><ul><li><strong>LongNet</strong>：扩展分块注意力 + 位置外推模块</li><li><strong>LongLoRA</strong>：用 LoRA 微调把上下文从 4K 扩到 100K+，成本极低</li><li><strong>LongNet / LongLLaMA</strong>：渐进式扩展 + 分块注意力</li></ul>",
+      "callout": {
+        "title": "工程上怎么选",
+        "body": "· 已有模型要扩长 → YaRN / NTK-aware + 少量长文本微调（成本最低）<br>· 从头训练长上下文 → LongNet / 分块注意力 + 渐进式扩展<br>· 流式无限生成 → Attention Sink + 滑窗<br>· 要极致性能 → 稀疏注意力（NSA 类），但要重训"
+      }
+    },
+    {
+      "heading": "实验效果",
+      "table": {
+        "headers": ["方法", "对比基线", "设置", "关键结果", "出处"],
+        "rows": [
+          ["Position Interpolation", "直接外推", "LLaMA 8K → 32K/128K", "外推崩溃问题基本解决，困惑度接近短上下文", "arXiv 2306.15595"],
+          ["NTK-aware Scaled RoPE", "线性插值", "LLaMA / CodeLlama", "优于线性插值，保真度更高", "arXiv 2309.00071"],
+          ["YaRN", "NTK-aware / PI", "Llama 2/3 系列", "在多种模型上表现优于对比方法，成为常用基线", "arXiv 2309.00071 / 2403.15865"],
+          ["LongRoPE", "PI / YaRN", "Phi-3 扩展到 256K", "非均匀插值 + 渐进扩展，支持 256K 上下文", "arXiv 2402.13753"],
+          ["LongLoRA", "全参数微调", "LLaMA 3 8B → 100K+", "训练成本极低（LoRA 秩 16），效果接近全量扩展", "arXiv 2309.12307"],
+          ["StreamingLLM", "完整注意力", "流式生成", "4M token 流式生成，perplexity 接近完整注意力", "arXiv 2309.17453"],
+          ["LongNet", "滑窗注意力", "1B token 语料", "支持超长上下文，作者报告在长序列任务上更优", "arXiv 2306.15390"]
+        ],
+        "caption": "注：外推类方法的评价多用困惑度与 needle-in-a-haystack，长程推理任务需额外验证"
+      }
+    },
+    {
+      "heading": "适用边界",
+      "body": "<ul><li><strong>插值会牺牲短距离精度</strong>：检索类任务（找相邻段落的关键信息）可能受损</li><li><strong>needle-in-a-haystack 测不出真实能力</strong>：能在 10 万 token 里找到一句话，不代表能做跨段落的推理</li><li><strong>长度外推后仍需微调</strong>：纯推理外推通常掉点，1K–10K 条长样本微调能恢复大部分</li><li><strong>长上下文的推理成本是另一回事</strong>：能装下 ≠ 能快速服务，见「并行与长上下文推理」</li><li><strong>Attention Sink 依赖模型特性</strong>：不是所有模型都有强 sink 行为，换模型需要重新验证</li><li><strong>有效上下文长度常常短于标称值</strong>：标称 128K 的模型，在 32K 之后可能已明显退化</li></ul>",
+      "refs": [
+        {"title": "Scaling Laws of Long-Context Language Models / Position Interpolation", "url": "https://arxiv.org/abs/2306.15595"},
+        {"title": "YaRN: Efficient Context Window Extension of LLMs", "url": "https://arxiv.org/abs/2309.00071"},
+        {"title": "LongRoPE: Extending LLM Context Window Beyond 2 Million Tokens", "url": "https://arxiv.org/abs/2402.13753"},
+        {"title": "LongLoRA: Efficient Fine-tuning of Long-Context Large Language Models", "url": "https://arxiv.org/abs/2309.12307"},
+        {"title": "Efficient Streaming Language Models with Attention Sinks", "url": "https://arxiv.org/abs/2309.17453"},
+        {"title": "LongNet: Scaling Long-Context Transformers Beyond 1M Tokens", "url": "https://arxiv.org/abs/2306.15390"}
+      ]
+    }
+  ]
+}

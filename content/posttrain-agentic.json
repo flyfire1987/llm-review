@@ -1,0 +1,52 @@
+{
+  "title": "Agent 与工具调用训练",
+  "summary": "工具调用训练的核心不是让模型「会写函数签名」，而是让模型学会在多轮交互中根据环境反馈修正自己的行动——这是长程信用分配问题。",
+  "updated_at": "2026-11-05",
+  "sections": [
+    {
+      "heading": "从 QA 到 Agent",
+      "tldr": "普通推理是「一次输入 → 一次输出」；Agent 是「输入 → 观察 → 行动 → 观察 → … → 输出」。训练难点从「单步正确」变成了「长链条中每一步都对，且能纠错」。",
+      "body": "<p>Agent 的执行循环：</p><pre><code>while not done:\n    思考 (reasoning) → 选择工具 (action) → 执行 → 获得观察 (observation)\n    把 observation 加入上下文，继续循环</code></pre><p>难点拆解：</p><ul><li><strong>工具选择</strong>：在几十上百个工具里挑对的那个（工具太多反而降低准确率）</li><li><strong>参数填充</strong>：格式正确、类型正确、语义正确</li><li><strong>长程信用分配</strong>：20 步之后错了，怎么归因到第 3 步的选择</li><li><strong>错误恢复</strong>：工具报错后能否理解错误并换个方法</li><li><strong>停止判断</strong>：何时认为任务完成，避免无限循环</li></ul>",
+      "points": [
+        "工具调用的语法正确率可以达到 99%，但任务完成率往往只有 30–50%——瓶颈在决策而非格式",
+        "上下文管理是 Agent 系统的工程核心：工具返回动辄上千 token"
+      ]
+    },
+    {
+      "heading": "核心技术点",
+      "body": "<h3>1. SFT 阶段：轨迹蒸馏</h3><p>主流做法是<strong>用更强模型生成完整轨迹，再蒸馏到小模型</strong>。数据形态是 (任务, 思考, 动作, 观察) 的序列，训练时对所有环节算 loss。代表工作：Toolformer（自监督插入 API 调用）、ReAct（思考-行动交替模板）、AgentInstruct。</p><h3>2. 工具调用的标准格式</h3><p>Function Calling 已成为事实标准（OpenAI / Anthropic / Google 通用格式）：</p><pre><code>{\n  \"name\": \"get_weather\",\n  \"arguments\": { \"city\": \"北京\", \"unit\": \"celsius\" }\n}</code></pre><p>训练时把工具定义放进 system prompt，让模型输出结构化调用，运行时由框架执行并回填结果。</p><h3>3. 多轮 RL（Agentic RL）</h3><p>在环境里做 rollout，按最终任务是否完成给奖励。难点：</p><ul><li><strong>环境昂贵</strong>：真实浏览器/沙箱 rollout 比文本任务慢几个数量级</li><li><strong>奖励稀疏</strong>：只有最终成败信号，中间步骤无监督</li><li><strong>上下文超长</strong>：多轮轨迹轻易突破几十万 token，训练与推理成本都爆炸</li></ul><p>应对：过程奖励（PRM 给中间步骤打分）、轨迹过滤（只保留成功轨迹做 SFT）、环境并行化、上下文压缩。</p><h3>4. 多智能体与角色分工</h3><p>Planner / Executor / Critic 分工，把长链条拆成多个短链条。收益在于降低单个 Agent 的决策复杂度，代价是通信开销与误差累积。</p><h3>5. 上下文工程</h3><p>这是目前 Agent 落地最大的工程杠杆：工具结果裁剪、检索式历史压缩、关键信息外置到结构化存储（而非塞进上下文）。</p><h3>6. GUI / 计算机操作</h3><p>从文本工具扩展到鼠标键盘操作（SeeAct、UFO、OmniParser）。训练方式从纯 SFT 转向 RL，奖励来自环境状态变化。</p>",
+      "callout": {
+        "title": "实践建议",
+        "body": "构建 Agent 时，工具数量控制在 10–20 个以内并做分组，超过 30 个后工具选择准确率会明显下降。用「先规划再执行」的两阶段结构比让模型自由循环更稳；给 Agent 明确的「放弃」选项，避免死循环烧 token。"
+      }
+    },
+    {
+      "heading": "实验效果",
+      "table": {
+        "headers": ["工作", "任务 / 环境", "对比基线", "关键结果", "出处"],
+        "rows": [
+          ["ReAct", "HotpotQA / FEVER", "Act-only、CoT", "推理与行动交错显著优于两者单独使用", "arXiv 2210.03629"],
+          ["Toolformer", "API 调用", "无工具模型", "自监督方式获得工具调用能力，多数基准有提升", "arXiv 2302.04761"],
+          ["AgentInstruct", "Agent 轨迹", "—", "提供大规模多步轨迹微调数据，显著提升工具使用", "arXiv 2404.08634"],
+          ["WebArena", "真实网页任务", "人类 78.24%", "最佳 GPT-4 驱动 Agent 约 14.41% 成功率", "arXiv 2307.13854"],
+          ["SWE-bench", "真实 GitHub issue", "—", "初期 GPT-4 仅约 1.96%，后续模型大幅提升", "arXiv 2310.06770"],
+          ["τ-bench", "工具调用 + 规则约束", "—", "揭示了 Agent 在多轮工具使用中的可靠性问题", "arXiv 2406.12045"],
+          ["Agentic RL (rStar / SWE agents)", "代码与搜索任务", "纯 SFT", "多轮 RL 带来超过单纯 SFT 的提升", "arXiv 2408.06364 等"]
+        ],
+        "caption": "注：SWE-bench 上不同版本（完整 / Lite / Verified）分数不可直接比较"
+      }
+    },
+    {
+      "heading": "适用边界",
+      "body": "<ul><li><strong>Agent 任务成功率仍远低于人类</strong>：WebArena 上人类 78% vs 最佳 Agent 14%（2023 年数据，近年已有大幅提升但差距仍存），不要按「接近可用」来规划</li><li><strong>成本是硬约束</strong>：多轮 rollout 的 token 消耗是单轮的 10–100 倍</li><li><strong>工具数量与准确率负相关</strong>：工具越多，模型选错概率越高</li><li><strong>RL 在 Agent 上比在 QA 上更难</strong>：环境不可控、奖励稀疏、失败代价高</li><li><strong>安全风险更高</strong>：Agent 有副作用（发邮件、删文件、花钱），上线必须有沙箱与权限隔离，不能只靠 prompt 约束</li><li><strong>多智能体不是银弹</strong>：通信开销与误差累积常常抵消分工收益</li></ul>",
+      "refs": [
+        {"title": "ReAct: Synergizing Reasoning and Acting in Language Models", "url": "https://arxiv.org/abs/2210.03629"},
+        {"title": "Toolformer: Language Models Can Teach Themselves to Use Tools", "url": "https://arxiv.org/abs/2302.04761"},
+        {"title": "AgentInstruct: Toward Generative Teaching with Agentic Paths", "url": "https://arxiv.org/abs/2404.08634"},
+        {"title": "WebArena: A Realistic Web Environment for Building Autonomous Agents", "url": "https://arxiv.org/abs/2307.13854"},
+        {"title": "SWE-bench: Can Language Models Resolve Real-World GitHub Issues?", "url": "https://arxiv.org/abs/2310.06770"},
+        {"title": "τ-bench: A Benchmark for Tool-Agent-User Interaction in Real-World Domains", "url": "https://arxiv.org/abs/2406.12045"}
+      ]
+    }
+  ]
+}

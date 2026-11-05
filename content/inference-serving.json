@@ -1,0 +1,117 @@
+{
+  "title": "推理引擎与服务框架",
+  "summary": "推理优化的核心矛盾是「显存带宽」而非「算力」——decode 阶段是访存瓶颈。这也解释了为什么 continuous batching 和 PagedAttention 这两项技术能带来数量级提升。",
+  "updated_at": "2026-11-02",
+  "sections": [
+    {
+      "heading": "推理阶段的性能特征",
+      "tldr": "Prefill 阶段是计算密集（compute-bound），decode 阶段是访存密集（memory-bound）。前者可用算力堆，后者只能靠减少访存和提升批处理来优化——这就是 KV Cache、量化、投机解码存在的原因。",
+      "body": "<p>两个阶段的算术强度（arithmetic intensity）差几个数量级：</p><ul><li><strong>Prefill</strong>：一次处理整段 prompt，矩阵乘法规模大，算力用满 → 可以靠多卡切分提升</li><li><strong>Decode</strong>：逐 token 生成，每步只算一个 token，每层权重都要完整读一遍 → <strong>算力利用率极低，瓶颈在显存带宽</strong></li></ul><p>算一下：70B 模型 FP16 权重约 140GB。单次 decode 要读全部权重，H100 带宽 3.35TB/s，理论上限约 24 tok/s（单请求）。这解释了为什么必须做 batching——批量 decode 时权重只需读一次，服务多个请求。</p><pre><code>Decode 阶段：每步显存访问 ≈ 模型权重总量\n         → 吞吐 ∝ batch_size / (权重读取时间)\nPrefill 阶段：算力用得满 → 吞吐 ∝ 算力</code></pre>",
+      "points": [
+        "理解「访存瓶颈」是所有推理优化的出发点",
+        "TTFT（首 token 延迟）由 prefill 决定，TPOT（每 token 延迟）由 decode 决定，两者要分开优化",
+        "算力提升对 decode 的直接帮助很小——买更多 GPU 对单请求延迟改善有限，但能提高总吞吐"
+      ]
+    },
+    {
+      "heading": "核心技术点",
+      "body": "<h3>1. Continuous Batching（连续批处理）</h3><p>传统静态 batching 必须等一整批全部生成完才能开始下一批，短的请求完成后就空转浪费算力。Continuous batching 在<strong>每个解码步</strong>动态把已完成的序列移出、把新请求加入，实现「永不空闲」的调度。vLLM 靠这个特性拿到数量级吞吐优势。</p><h3>2. PagedAttention</h3><p>传统实现为每个序列预分配连续 KV cache 空间，实际长度不定 → 大量碎片浪费（vLLM 论文测得浪费率 60–80%）。PagedAttention 借鉴操作系统虚拟内存的分页思想：KV cache 切成固定大小的 block，用页表映射到物理块，分配与碎片都消失。配合<strong>Copy-on-Write</strong>（序列分叉时共享前缀块）实现前缀缓存。</p><h3>3. 主流引擎对比</h3><ul><li><strong>vLLM</strong>：PagedAttention 的发明者，生态最全，通用性最好</li><li><strong>SGLang</strong>：RadixAttention（前缀复用）+ 结构化生成优化，多轮/Agent 场景有优势</li><li><strong>TensorRT-LLM</strong>：NVIDIA 官方，编译优化最深，性能上限高，但部署流程复杂、模型适配需手工调</li><li><strong>LMDeploy</strong>：TurboMind 引擎，量化与低延迟见长</li><li><strong>Ollama</strong>：面向本地使用，封装简单</li></ul><h3>4. PD 分离（Prefill-Decode Disaggregation）</h3><p>把 prefill 和 decode 部署到不同 GPU 池：prefill 池吃满算力处理长 prompt，decode 池专注低延迟生成。两者资源需求与瓶颈完全不同，混在一起会让长 prompt 阻塞其他请求的 decode。DeepSeek 的 PD 分离方案显示可提升吞吐 3–6 倍。</p><h3>5. 关键指标</h3><ul><li><strong>TTFT</strong>：Time To First Token，首 token 延迟（交互式场景关键）</li><li><strong>TPOT</strong>：Time Per Output Token，每 token 延迟</li><li><strong>吞吐</strong>：tokens/s（总输出）、requests/s（请求数）</li><li><strong>Goodput</strong>：满足 SLO（如 TPOT < 100ms）的有效吞吐——比裸吞吐更有参考价值</li></ul>",
+      "callout": {
+        "title": "选型建议",
+        "body": "通用服务选 vLLM（生态好、社区问题好搜）；多轮/Agent 场景看 SGLang（前缀复用收益大）；NVIDIA 硬件上追求极致性能且愿意投入工程时间选 TensorRT-LLM；先用 vLLM 跑通，再用压测数据决定是否换。"
+      }
+    },
+    {
+      "heading": "实验效果",
+      "table": {
+        "headers": [
+          "技术 / 引擎",
+          "对比基线",
+          "设置",
+          "关键结果",
+          "出处"
+        ],
+        "rows": [
+          [
+            "PagedAttention (vLLM)",
+            "Orca / FasterTransformer",
+            "A100, ShareGPT / MT-Bench",
+            "吞吐 2–4×，显存浪费从 60–80% 降至接近 0",
+            "arXiv 2309.06180"
+          ],
+          [
+            "Continuous Batching",
+            "静态 batching",
+            "同上",
+            "吞吐提升主要来源，随请求长度分布变化明显",
+            "arXiv 2309.06180"
+          ],
+          [
+            "SGLang",
+            "vLLM",
+            "多轮对话 / 结构化生成",
+            "RadixAttention 前缀复用带来 1.5–5× 提升（前缀长时更高）",
+            "arXiv 2312.07104"
+          ],
+          [
+            "PD 分离",
+            "混合部署",
+            "长 prompt + 高并发",
+            "吞吐提升约 3–6×，TTFT 与 TPOT 可独立调优",
+            "arXiv 2408.14658 等"
+          ],
+          [
+            "Continuous batching (Orca)",
+            "vLLM 前身基线",
+            "论文内对比",
+            "可达此前 SOTA 系统的 10× 以上吞吐",
+            "arXiv 2306.02677"
+          ],
+          [
+            "TensorRT-LLM",
+            "vLLM",
+            "Hopper / Ada GPU",
+            "特定配置下延迟与吞吐可达最优，但需编译调优",
+            "官方 benchmark 文档"
+          ]
+        ],
+        "caption": "注：引擎间对比高度依赖 GPU、batch size、序列长度分布与量化设置，跨论文数字不可直接对比"
+      }
+    },
+    {
+      "heading": "适用边界",
+      "body": "<ul><li><strong>高并发短请求</strong>：continuous batching 收益最大；<strong>低并发长生成</strong>收益有限，显存碎片才是瓶颈</li><li><strong>TTFT 与 TPOT 需要权衡</strong>：加大 batch 提升吞吐但抬高 TPOT，交互式产品应优先保 TPOT</li><li><strong>PD 分离需要至少两组 GPU</strong>，小规模部署反而是负优化（多一次网络传输）</li><li><strong>TensorRT-LLM 的编译流程</strong>：换模型版本要重新编译，模型迭代频繁时会成为负担</li><li><strong>MoE 模型推理</strong>：显存占用由全部专家决定（而非激活专家），需要 EP 才能用上多卡，路由不均衡还会造成卡间等待</li><li><strong>Goodput 比吞吐重要</strong>：一个吞吐很高但 TPOT 拖垮交互体验的部署，业务上是失败的</li></ul>",
+      "refs": [
+        {
+          "title": "vLLM: Easy, Fast, and Cheap LLM Serving with PagedAttention",
+          "url": "https://arxiv.org/abs/2309.06180"
+        },
+        {
+          "title": "SGLang: Efficient Execution of Structured Language Model Programs",
+          "url": "https://arxiv.org/abs/2312.07104"
+        },
+        {
+          "title": "Orca: A Distributed Serving System for Transformer-Based Generative Models (continuous batching)",
+          "url": "https://arxiv.org/abs/2306.02677"
+        },
+        {
+          "title": "DistServe: Disaggregating Prefill and Decoding for Goodput-optimized Large Language Model Serving",
+          "url": "https://arxiv.org/abs/2401.09670"
+        },
+        {
+          "title": "Splitwise: Efficient Generative LLM Inference Using Phase Splitting",
+          "url": "https://arxiv.org/abs/2311.18877"
+        }
+      ]
+    },
+    {
+      "heading": "📌 最新进展",
+      "tldr": "自动同步的技术动态（每日 03:00 任务写入），随领域进展更新。",
+      "body": "<p>以下条目由每日同步任务自动追加，按时间倒序排列，<strong>原文链接</strong>可直达原论文/原文。</p>",
+      "points": [
+        "[2026-11-02] **ROCm InferaSim ：削减LLM服务试用成本并部署最佳配置**（arXiv）— Serving an LLM efficiently depends on the engine, how the model is split across GPUs, precision, scheduler settings, speculative decoding, KV-cache management,  原文：http://arxiv.org/abs/2611.04032",
+        "[2026-11-04] **ServerBench ：您的编码代理如何设计专门的LLM服务系统？**（arXiv）— Large language model (LLM) coding agents develop software through experimentation, offering an opportunity to design the serving systems supporting their own op 原文：http://arxiv.org/abs/2611.06841"
+      ]
+    }
+  ]
+}

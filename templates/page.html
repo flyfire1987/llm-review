@@ -1,0 +1,214 @@
+{% extends 'base.html' %}
+{% set active_slug = slug %}
+{% block title %}{{ page.title }} · 大模型综述{% endblock %}
+
+{% block content %}
+<article class="page" id="page">
+
+  <!-- 面包屑 -->
+  <nav class="crumbs">
+    <a href="{{ script_name }}/">总览</a>
+    {% for p in parents %}
+      <span class="sep">/</span>
+      <span class="crumb-text">{{ p.title }}</span>
+    {% endfor %}
+    {% if parents %}<span class="sep">/</span>{% endif %}
+    <span class="crumb-cur">{{ page.title }}</span>
+  </nav>
+
+  <!-- 页头 -->
+  <header class="page-head">
+    <div class="head-left">
+      <h1 class="page-title">{{ page.title }}</h1>
+      {% if page.summary %}
+        <p class="page-summary">{{ page.summary }}</p>
+      {% endif %}
+      {% if page.updated_at %}
+        <div class="page-meta">最后更新：{{ page.updated_at }}</div>
+      {% endif %}
+    </div>
+    <div class="head-right">
+      {% if edit_enabled %}
+      <button class="btn btn-edit" id="btnEdit" data-slug="{{ slug }}">
+        ✏️ 编辑
+      </button>
+      {% endif %}
+    </div>
+  </header>
+
+  <!-- 正文 -->
+  <div class="doc" id="doc">
+    {% for sec in page.sections %}
+      <section class="doc-sec" id="sec-{{ loop.index }}">
+        {% if sec.heading %}
+          <h2 class="doc-h2">{{ sec.heading }}</h2>
+        {% endif %}
+
+        {% if sec.tldr %}
+          <div class="tldr">
+            <span class="tldr-tag">TL;DR</span>
+            <div class="tldr-body">{{ sec.tldr }}</div>
+          </div>
+        {% endif %}
+
+        {% if sec.body %}
+          <div class="doc-p">{{ sec.body | safe }}</div>
+        {% endif %}
+
+        {% if sec.points %}
+          <ul class="point-list">
+            {% for pt in sec.points %}
+              <li>{{ pt }}</li>
+            {% endfor %}
+          </ul>
+        {% endif %}
+
+        {% if sec.table %}
+          <div class="table-wrap">
+            <table class="doc-table">
+              <thead>
+                <tr>
+                  {% for h in sec.table.headers %}
+                    <th>{{ h }}</th>
+                  {% endfor %}
+                </tr>
+              </thead>
+              <tbody>
+                {% for row in sec.table.rows %}
+                  <tr>
+                    {% for cell in row %}
+                      <td>{{ cell }}</td>
+                    {% endfor %}
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+            {% if sec.table.caption %}
+              <div class="table-caption">📎 {{ sec.table.caption }}</div>
+            {% endif %}
+          </div>
+        {% endif %}
+
+        {% if sec.code %}
+          <pre class="doc-code"><code>{{ sec.code }}</code></pre>
+        {% endif %}
+
+        {% if sec.refs %}
+          <ol class="ref-list">
+            {% for r in sec.refs %}
+              <li>
+                {% if r.url %}
+                  <a href="{{ r.url }}" target="_blank" rel="noopener">{{ r.title }}</a>
+                {% else %}
+                  {{ r.title }}
+                {% endif %}
+                {% if r.note %} <span class="ref-note">{{ r.note }}</span>{% endif %}
+              </li>
+            {% endfor %}
+          </ol>
+        {% endif %}
+
+        {% if sec.callout %}
+          <div class="callout">
+            <div class="callout-title">{{ sec.callout.title or '注意' }}</div>
+            <div class="callout-body">{{ sec.callout.body }}</div>
+          </div>
+        {% endif %}
+      </section>
+    {% endfor %}
+
+    {% if not page.sections %}
+      <div class="empty-hint">
+        暂无内容。点击右上角「✏️ 编辑」开始撰写。
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- 上下页 -->
+  <nav class="pager">
+    {% if prev_item %}
+      <a class="pager-link prev" href="{{ script_name }}/page/{{ prev_item.slug }}">
+        <span class="pager-label">← 上一篇</span>
+        <span class="pager-title">{{ prev_item.title }}</span>
+      </a>
+    {% else %}<span></span>{% endif %}
+    {% if next_item %}
+      <a class="pager-link next" href="{{ script_name }}/page/{{ next_item.slug }}">
+        <span class="pager-label">下一篇 →</span>
+        <span class="pager-title">{{ next_item.title }}</span>
+      </a>
+    {% endif %}
+  </nav>
+</article>
+
+<!-- ══════════ 编辑器弹层 ══════════ -->
+<div class="editor-mask" id="editorMask" hidden>
+  <div class="editor-panel">
+    <div class="editor-head">
+      <div class="editor-head-title">✏️ 编辑页面内容</div>
+      <div class="editor-head-right">
+        <span class="editor-slug" id="editorSlug"></span>
+        <button class="btn btn-ghost" id="btnCancel">取消</button>
+        <button class="btn btn-save" id="btnSave">💾 保存</button>
+      </div>
+    </div>
+
+    <div class="editor-body">
+      <div class="editor-field">
+        <label>页面标题</label>
+        <input type="text" id="edTitle" placeholder="例如：预训练数据 Pipeline">
+      </div>
+      <div class="editor-field">
+        <label>摘要（TL;DR 一句话）</label>
+        <input type="text" id="edSummary" placeholder="一句话概括本页内容">
+      </div>
+
+      <div class="editor-field">
+        <label>正文结构（JSON）</label>
+        <div class="editor-hint">
+          每个 section 支持字段：
+          <code>heading</code> 小标题 ·
+          <code>tldr</code> 结论 ·
+          <code>body</code> 正文（支持 HTML）·
+          <code>points</code> 要点数组 ·
+          <code>table</code> <code>{headers:[], rows:[[]], caption:""}</code> ·
+          <code>code</code> 代码块 ·
+          <code>callout</code> <code>{title,body}</code> ·
+          <code>refs</code> <code>[{title,url,note}]</code>
+        </div>
+        <textarea id="edSections" spellcheck="false" rows="18"></textarea>
+      </div>
+    </div>
+
+    <div class="editor-foot">
+      <span class="editor-status" id="editorStatus"></span>
+      <span class="editor-foot-right">
+        <button class="btn btn-ghost" id="btnFormat">格式化 JSON</button>
+      </span>
+    </div>
+  </div>
+</div>
+
+<!-- 令牌输入弹层（编辑鉴权） -->
+<div class="token-mask" id="tokenMask" hidden>
+  <div class="token-panel">
+    <div class="token-title">🔑 编辑令牌</div>
+    <p class="token-desc">该站点的内容编辑需要令牌。令牌正确后会保存在本浏览器中，无需重复输入。</p>
+    <input type="password" id="edToken" placeholder="请输入编辑令牌" autocomplete="off">
+    <div class="token-error" id="tokenError"></div>
+    <div class="token-actions">
+      <button class="btn btn-ghost" id="btnTokenCancel">取消</button>
+      <button class="btn btn-save" id="btnTokenOk">确定</button>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ script_name }}/static/js/llm.js"></script>
+<script>
+  window.LLM_SLUG = {{ slug | tojson }};
+  window.LLM_API = {{ script_name | tojson }};
+</script>
+{% endblock %}

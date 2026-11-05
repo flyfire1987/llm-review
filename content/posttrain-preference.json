@@ -1,0 +1,62 @@
+{
+  "title": "偏好对齐：RLHF 与 DPO",
+  "summary": "RLHF 打开了偏好对齐这条路，但 DPO 等离线方法用「跳过显式奖励模型」的方式大幅简化了流程，在多数场景下已取代 PPO。",
+  "updated_at": "2026-11-05",
+  "sections": [
+    {
+      "heading": "为什么要偏好对齐",
+      "tldr": "SFT 只能告诉模型「什么是好答案」，偏好对齐才能表达「A 比 B 好」。这是安全、拒答、有用性这类无法用单一示范答案定义的属性的核心手段。",
+      "body": "<p>偏好数据的形式是三元组 <code>(prompt, chosen, rejected)</code>。它比单条示范能表达更细的信号：</p><ul><li>同样正确但风格不同 → 教风格偏好</li><li>都对但安全性不同 → 教安全边界</li><li>一个更长一个更准 → 教「质量优于长度」</li></ul>",
+      "points": [
+        "偏好数据的质量 >> 数量：数千条精标 >> 数十万条噪声",
+        "偏好必须「相对」而非「绝对」：没有 rejected 的偏好数据无法训练"
+      ]
+    },
+    {
+      "heading": "RLHF 三阶段流程",
+      "body": "<ol><li><strong>阶段 1 · SFT</strong>：在 (instruction, response) 上做监督微调，得到初始策略 π_θ</li><li><strong>阶段 2 · 训练奖励模型</strong>：用 (prompt, chosen, rejected) 训练 RM <code>r_φ(x, y)</code>，损失为 Bradley-Terry 形式：</li></ol><pre><code>ℒ_RM = - E[ log σ( r_φ(x, y_w) - r_φ(x, y_l) ) ]</code></pre><ol start=\"3\"><li><strong>阶段 3 · 策略优化</strong>：用 PPO 最大化奖励，同时用 KL 惩罚约束不要偏离 SFT 模型太远：</li></ol><pre><code>max_θ  E[ r_φ(x, y) ] - β · KL( π_θ(y|x) || π_ref(y|x) )</code></pre><p>KL 系数 β 是关键超参：太小 → 模型为了刷奖励而胡说（reward hacking）；太大 → 什么都不变。</p>",
+      "callout": {
+        "title": "为什么要 KL 约束",
+        "body": "奖励模型只在偏好数据覆盖的区域可信。KL 惩罚把生成限制在 SFT 模型附近，等于给奖励模型划定「可信域」，避免模型跑到奖励模型的分布外去刷分。"
+      }
+    },
+    {
+      "heading": "核心技术点",
+      "body": "<h3>1. DPO：直接偏好优化</h3><p>DPO 的洞察：既然目标是带 KL 约束的奖励最大化，可以把 RL 问题<strong>重参数化为一个分类问题</strong>，直接对偏好数据做监督式训练，完全不需要显式的奖励模型和在线采样：</p><pre><code>ℒ_DPO = - E[ log σ( β·( log π_θ(y_w|x)/π_ref(y_w|x) - log π_θ(y_l|x)/π_ref(y_l|x) ) ) ]</code></pre><p>优势：训练流程从「SFT → RM → PPO」三段简化为两段；训练稳定（离线数据，无采样）；可复用现有 SFT 基础设施。</p><h3>2. DPO 变体</h3><ul><li><strong>IPO</strong>：引入平方损失缓解 DPO 过拟合偏好数据的问题</li><li><strong>KTO</strong>：不需要成对偏好，只要「好/坏」二分类信号，更易收集数据</li><li><strong>SimPO</strong>：去掉参考模型（省显存），用长度归一化奖励</li><li><strong>ORPO</strong>：单阶段方法，把 SFT 与偏好优化合并</li><li><strong>CPO</strong>：在偏好数据上做受约束的策略优化</li></ul><h3>3. 奖励模型的问题</h3><ul><li><strong>RM 过拟合</strong>：偏好数据量少时，RM 很快开始记忆而非泛化</li><li><strong>Reward hacking</strong>：模型学会钻 RM 的漏洞（变长、堆砌格式、讨好话术）</li><li><strong>RM 与策略的分布错配</strong>：策略生成的内容逐渐偏离 RM 的训练分布，奖励分数失真</li></ul><h3>4. 过程奖励 PRM</h3><p>在推理链的<strong>每一步</strong>给奖励，而非只看最终答案。Math-PRM 等工作显示这能显著提升数学推理的 pass@1。代价是标注成本高、需要逐步标注。</p>",
+      "points": [
+        "DPO ≈ 离线、稳定的偏好优化；PPO ≈ 在线、表达力更强但难调",
+        "主流开源实践：SFT → DPO(在线变体如 Online DPO / SimPO) → 必要时 GRPO 补推理",
+        "如果只需要「风格与安全」偏好，DPO 足够；如果要提升推理正确率，需要 RL"
+      ]
+    },
+    {
+      "heading": "实验效果",
+      "table": {
+        "headers": ["方法", "对比基线", "设置", "关键结果", "出处"],
+        "rows": [
+          ["InstructGPT (RLHF)", "SFT only / 人类专家", "PPO + 1.3B RM", "偏好胜率超过 GPT-3 175B，1B 参数超 175B 偏好水平", "arXiv 2203.02155"],
+          ["DPO", "PPO (RLHF)", "情感控制任务", "同等或更优的偏好胜率，且训练更简单稳定", "arXiv 2305.18290"],
+          ["IPO", "DPO", "情感控制 + 开放生成", "缓解 DPO 过度拟合偏好数据的问题", "arXiv 2310.12036"],
+          ["KTO", "DPO", "仅二元好/坏反馈", "在无成对偏好场景下可用，效果接近 DPO", "arXiv 2402.01306"],
+          ["SimPO", "DPO", "Llama 3.1 8B", "去掉参考模型，省显存，长度归一化后超越 DPO", "arXiv 2405.14734"],
+          ["Math-PRM", "Outcome Reward Model", "MATH 数据集", "过程奖励使最优选择的 pass@1 显著提升", "arXiv 2402.14759"],
+          ["Reward hacking 实证", "—", "RLHF 训练中", "观察到长度增加与特定句式滥用等现象", "arXiv 2310.07716"]
+        ],
+        "caption": "注：LLM-as-Judge 胜率是主流指标，但存在 self-preference / 位置偏差，需人工抽检"
+      }
+    },
+    {
+      "heading": "适用边界",
+      "body": "<ul><li><strong>DPO 不会提升推理能力</strong>：偏好对齐主要改变「行为」，不改变「会不会算」。数学/代码类能力提升需要 RL + 可验证奖励</li><li><strong>偏好数据质量是天花板</strong>：RM 再强也超不过偏好数据的标注质量上限</li><li><strong>RLHF 工程复杂度高</strong>：需要同时维护 RM、policy、ref、value 四个模型和在线采样管线，显存与调参成本远高于 DPO</li><li><strong>偏好数据易被特定标注偏好污染</strong>：单一标注团队的偏好会被模型放大（风格单一、长度偏置）</li><li><strong>KTO/单样本反馈</strong>在真实场景数据效率更高，但要接受更弱的相对信号</li></ul>",
+      "refs": [
+        {"title": "Training language models to follow instructions with human feedback (InstructGPT)", "url": "https://arxiv.org/abs/2203.02155"},
+        {"title": "Direct Preference Optimization: Your Language Model is Secretly a Reward Model", "url": "https://arxiv.org/abs/2305.18290"},
+        {"title": "A General Theoretical Paradigm to Understand Learning from Human Preferences (IPO)", "url": "https://arxiv.org/abs/2310.12036"},
+        {"title": "KTO: Model Alignment as Prospect Theoretic Optimization", "url": "https://arxiv.org/abs/2402.01306"},
+        {"title": "SimPO: Simple Preference Optimization with a Reference-Free Reward", "url": "https://arxiv.org/abs/2405.14734"},
+        {"title": "Let's Verify Step by Step (Math-PRM)", "url": "https://arxiv.org/abs/2402.14759"},
+        {"title": "Scaling Laws for Reward Model Overoptimization (reward hacking)", "url": "https://arxiv.org/abs/2310.07716"}
+      ]
+    }
+  ]
+}

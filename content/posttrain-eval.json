@@ -1,0 +1,125 @@
+{
+  "title": "评测体系",
+  "summary": "评测是整个后训练环节最容易被操纵的部分——污染、指标失真、judge 偏差是三个必须先解决的问题。",
+  "updated_at": "2026-11-04",
+  "sections": [
+    {
+      "heading": "评测的三层结构",
+      "tldr": "能力评测（benchmark）→ 偏好评测（arena / LLM-as-Judge）→ 场景评测（业务实测）。前两层会失真，第三层是唯一可信的终审。",
+      "body": "<ul><li><strong>静态基准</strong>：MMLU / GPQA / AIME / HumanEval / SWE-bench。可复现、易对比，但会被污染、被过拟合</li><li><strong>动态基准</strong>：LiveCodeBench（持续新增题目）、LiveBench、GPQA-Diamond（从验证过的题库中筛出难题）。抗污染但需要持续维护</li><li><strong>偏好评测</strong>：Chatbot Arena 的 Elo、CrawlingArena 等。用人类或强模型做裁判</li><li><strong>场景评测</strong>：自己的业务测试集。唯一能真正决策的层</li></ul><p><strong>能力维度拆分建议</strong>：不要只看一个总分。建议至少分：推理（数学/逻辑）、代码、知识、指令跟随、安全、长上下文、Agent 任务。</p>",
+      "points": [
+        "MMLU 饱和：顶级模型已 >90 分，区分度接近消失，不要再作为主要指标",
+        "GPQA-Diamond 是当前区分度最好的「专家级」科学问答集",
+        "AIME / MATH-500 覆盖高中竞赛级数学推理",
+        "SWE-bench / LiveCodeBench 覆盖真实软件工程能力"
+      ]
+    },
+    {
+      "heading": "核心技术点",
+      "body": "<h3>1. 数据污染（Contamination）</h3><p>训练数据里混入了测试题。检测方法：n-gram 重叠、语义相似度匹配、动态换题（如 LiveCodeBench 的时间切片）、对同一能力生成全新题做交叉验证。</p><h3>2. LLM-as-Judge</h3><p>用强模型给候选回答打分。三个已知偏差：</p><ul><li><strong>位置偏差</strong>（Position Bias）：A/B 对比时偏爱第一个</li><li><strong>自我偏好</strong>（Self-Preference Bias）：更喜欢与自己风格相似的回答</li><li><strong>长度偏差</strong>（Verbosity Bias）：偏好更长的回答</li></ul><p>缓解：随机交换位置、多次采样取平均、用人工校准子集量化 judge 的准确率、混合多个 judge 模型。</p><h3>3. 竞技场 Elo</h3><p>Chatbot Arena 的 Bradley-Terry 模型出 Elo 分。优点是贴近人类真实偏好、难以针对性优化；缺点是慢（需要足够对战量）、对投票者群体敏感、无法细分能力维度。</p><h3>4. Agent 评测</h3><p>WebArena（网页任务）、GAIA（通用助理）、SWE-bench（真实仓库修 bug）、τ-bench（工具调用）。这类任务需要可验证的环境状态，比纯问答难得多。</p><h3>5. 污染与刷榜</h3><p>「benchmark hacking」指模型被专门优化到在特定评测上得分高但通用能力没变。识别信号：分数提升但训练数据未变、同一模型不同提示格式分数波动大、其他相关基准无同步提升。</p>",
+      "callout": {
+        "title": "实操建议",
+        "body": "建立三层评测体系：① 用动态基准做能力回归（防污染）；② 用 LLM-as-Judge 做快速迭代（但每周用人工抽检 100 条校准）；③ 每个版本跑自己的业务测试集（哪怕只有 50 条），这 50 条的决策权高于任何公开榜单。"
+      }
+    },
+    {
+      "heading": "实验效果",
+      "table": {
+        "headers": [
+          "评测 / 现象",
+          "关键数据",
+          "结论",
+          "出处"
+        ],
+        "rows": [
+          [
+            "MMLU 饱和趋势",
+            "顶级模型 MMLU 均分已超过 90 分",
+            "区分度丧失，需转向 GPQA-Diamond 等难集",
+            "arXiv 2403.04132 等"
+          ],
+          [
+            "GPT-4 Technical Report 的污染分析",
+            "部分模型在 GSM8K 等集上疑似见过原题",
+            "需 n-gram + 语义双重复核",
+            "arXiv 2303.08774"
+          ],
+          [
+            "LiveCodeBench 设计",
+            "按时间切片新增题目，持续刷新",
+            "有效缓解静态 benchmark 饱和",
+            "arXiv 2403.07974"
+          ],
+          [
+            "LLM-as-Judge 与人类一致性",
+            "GPT-4 与人类一致率约 80%+，但存在系统性偏差",
+            "可用于快速迭代，不可作为唯一依据",
+            "arXiv 2306.05685 / 2305.17926"
+          ],
+          [
+            "位置偏差实证",
+            "成对比较中模型对首个答案存在稳定偏好",
+            "必须交换位置并取均值",
+            "arXiv 2305.17926"
+          ],
+          [
+            "Chatbot Arena 方法论",
+            "基于 Bradley-Terry 的成对比较 Elo",
+            "贴近真实偏好但难快速迭代",
+            "arXiv 2403.04132"
+          ],
+          [
+            "SWE-bench Verified",
+            "修正了原版测试用例错误",
+            "更可靠的软件工程评测",
+            "arXiv 2410.06992"
+          ]
+        ],
+        "caption": "注：一致率数字依任务类型与评判协议差异很大，此处为论文报告的典型量级"
+      }
+    },
+    {
+      "heading": "适用边界",
+      "body": "<ul><li><strong>公开 benchmark 不是决策依据</strong>：它们只适合做「不回归」的守门员，选型必须靠自己的业务集</li><li><strong>Elo 分数不适合细粒度比较</strong>：两个模型差 10 分 Elo 在统计上可能不显著，需要看置信区间与对战数</li><li><strong>动态基准需要持续维护</strong>：不更新的动态基准最终也会饱和</li><li><strong>Agent 评测的环境脆弱</strong>：网页/仓库状态变化会导致不可复现，需要固定快照</li><li><strong>judge 模型会过时</strong>：用旧 judge 评新模型会低估进步（judge 自身的偏见会掩盖被评模型的差异）</li></ul>",
+      "refs": [
+        {
+          "title": "Chatbot Arena: An Open Platform for Evaluating LLMs by Human Preference",
+          "url": "https://arxiv.org/abs/2403.04132"
+        },
+        {
+          "title": "LiveCodeBench: Holistic and Contamination Free Evaluation for Code",
+          "url": "https://arxiv.org/abs/2403.07974"
+        },
+        {
+          "title": "Judging LLM-as-a-Judge with MT-Bench and Chatbot Arena",
+          "url": "https://arxiv.org/abs/2306.05685"
+        },
+        {
+          "title": "Large Language Models are not Fair Evaluators (位置偏差与自偏好)",
+          "url": "https://arxiv.org/abs/2305.17926"
+        },
+        {
+          "title": "SWE-bench: Can Language Models Resolve Real-World GitHub Issues?",
+          "url": "https://arxiv.org/abs/2310.06770"
+        },
+        {
+          "title": "SWE-bench Verified",
+          "url": "https://arxiv.org/abs/2410.06992"
+        },
+        {
+          "title": "GAIA: a benchmark for General AI Assistants",
+          "url": "https://arxiv.org/abs/2311.12983"
+        }
+      ]
+    },
+    {
+      "heading": "📌 最新进展",
+      "tldr": "自动同步的技术动态（每日 03:00 任务写入），随领域进展更新。",
+      "body": "<p>以下条目由每日同步任务自动追加，按时间倒序排列，<strong>原文链接</strong>可直达原论文/原文。</p>",
+      "points": [
+        "[2026-11-04] **语言模型中汉字的语音学知识**（arXiv）— How much phonological knowledge do language models (LMs) possess about Chinese characters, and how is this knowledge represented and used? We introduce PinyinBe 原文：http://arxiv.org/abs/2611.05803",
+        "[2026-11-04] **LLM服务引擎中配置和缓存体系结构的受控实验评估**（arXiv）— Multi-agent LLM applications repeat most of their prompt tokens across requests, and serving engines reuse the cached state of shared prefixes. vLLM and SGLang  原文：http://arxiv.org/abs/2611.05991"
+      ]
+    }
+  ]
+}

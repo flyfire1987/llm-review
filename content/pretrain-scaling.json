@@ -1,0 +1,96 @@
+{
+  "title": "Scaling Law 与涌现能力",
+  "summary": "Chinchilla 给出了算力最优的 token/参数配比；关于「涌现能力」的实证研究则给出了一个更反直觉但更实用的结论——能力可能是连续度量的。",
+  "updated_at": "2026-11-05",
+  "sections": [
+    {
+      "heading": "Chinchilla：算力最优的 token/参数配比",
+      "tldr": "Chinchilla（70B 参数，1.4T token）证明当时的大模型严重「欠训练」：同等算力下，模型应缩小、token 应加多。经验法则约为 20 token/参数。",
+      "body": "<p>Kaplan 等人的原始 Scaling Law 描述的是「参数越多越好」，实践中导致大家一味堆参数。Hoffmann 等人指出这是<strong>因为固定了 token 数量来比较</strong>，在固定算力预算下，正确做法是让模型和 token <strong>同步增长</strong>。</p><p>Chinchilla 的核心结论：</p><ul><li>在固定算力 C 下，最优的参数量 N 与 token 数 D 满足 <code>D ∝ C^0.73</code>，<code>N ∝ C^0.27</code></li><li>经验比例约 <strong>20 token / 参数</strong>（后续工作提示实际应更高）</li><li>Chinchilla 70B 在同等算力下显著优于 Gopher 175B</li></ul><p>损失的经验形式：</p><pre><code>L(N, D) = A / N^α + B / D^β\n  α ≈ 0.34,  β ≈ 0.28</code></pre><p>第一项是模型容量不足的损失，第二项是数据不足的损失。这给了训练决策一个直接工具：<strong>看你在损失曲线上离最优点有多远</strong>，决定该加参数还是加数据。</p>",
+      "callout": {
+        "title": "实践修正",
+        "body": "现代推理模型（如 DeepSeek-R1 的中间模型）在同等算力下用远高于 20 token/参数 的比例训练并取得更优效果，说明 Chinchilla 最优值是「当前数据质量与架构下的经验最优」，随条件上移，不是普适常数。做训练预算规划时应实测拟合自己的 loss 曲线，不要照抄系数。"
+      },
+      "code": "Chinchilla 的经验最优（按 FLOPs 近似，固定算力预算 C）：\n\n  L(N, D) ≈ (E / (N^α + β·D^β))^α  ,  经验最优 D ≈ 20 · N\n\n  N = 参数量,  D = 训练 token 数,  C ≈ 6·N·D\n\n含义：算力固定时，参数与数据要「成比例」增长。\n  · 参数量太小 → 数据用不完，模型欠拟合\n  · 参数量太大 → 每个参数分到的 token 太少，模型欠训练\n\n实践含义：\n  · 2020 年前的模型（如 175B GPT-3 用 300B token）严重「参数过大」\n  · 现代模型普遍遵循 ~20 token/param，甚至更高（数据质量提升后最优配比上移）\n  · 推理成本看 N，训练成本看 N·D —— 两者要分开算"
+    },
+    {
+      "heading": "涌现能力之争",
+      "tldr": "Schaeffer et al. 指出：所谓「涌现」很可能是评测指标的离散化伪影——用非线性指标（如 exact match、多选题正确率）度量连续能力时，阈值附近的微小改善会表现为「突然出现」。",
+      "body": "<p>原始观察：某些任务（如多步算术、指令跟随）在小模型上准确率接近 0，超过某个规模后突然跃升，于是被称作「涌现能力」。</p><p>Schaeffer et al. 的反驳：把指标换成连续可导的度量后，跃升曲线变成平滑曲线，说明<strong>能力本身是连续的，只是度量方式制造了阶跃</strong>。他们的建议是用 B-piece 似然（bit-per-byte）这类连续度量。</p><p>这个争论的实践含义：</p><ul><li>「涌现」不是要不要相信的玄学，而是<strong>取决于你怎么测</strong></li><li>用离散指标评估会系统性高估小模型或低估中间规模模型的能力</li><li>业务上选型时，连续指标（如 pass@k、log-likelihood、partial credit）往往更能反映真实能力差距</li></ul>",
+      "points": [
+        "离散指标（exact match / accuracy）→ 阶跃式曲线，容易被解读为「涌现」",
+        "连续指标（bpb、logprob、partial credit）→ 平滑曲线，能力连续",
+        "结论：不要把「涌现」当作神秘现象来做决策依据"
+      ]
+    },
+    {
+      "heading": "其他 Scaling 维度",
+      "body": "<h3>1. 数据受限下的 Scaling</h3><p>当高质量数据耗尽，继续重复训练仍能提升（Muennighoff et al. 证明重复最多 4 个 epoch 效果接近不重复），但收益远小于新数据；epoch 过多会明显过拟合。重复数据的有效性遵循幂律衰减。</p><h3>2. BridgeFormer / Mixture-of-Depths</h3><p>探索「每层计算深度」这一维度的 scaling：让模型动态决定哪些 token 需要更多计算层（Router 决定跳过或参与），在固定算力下提升效果。</p><h3>3. 推理时计算 Scaling</h3><p>这是 2024 年后最重要的新维度：<strong>把算力从「训练」转移到「推理」</strong>。best-of-n、self-consistency、tree search、RL 训练出的长思维链，都是在推理时用更多换效果。DeepSeek-R1 证明纯 RL 也能激发长思维链涌现。</p>",
+      "table": {
+        "headers": [
+          "Scaling 维度",
+          "控制变量",
+          "最优做法",
+          "出处"
+        ],
+        "rows": [
+          [
+            "参数量 vs token（算力最优）",
+            "固定总算力 C",
+            "N ∝ C^0.27, D ∝ C^0.73，约 20 token/param",
+            "arXiv 2203.15556"
+          ],
+          [
+            "数据质量缩放",
+            "固定数据质量",
+            "提升质量的收益 > 提升数量",
+            "arXiv 2406.11794"
+          ],
+          [
+            "数据受限",
+            "高质量数据耗尽",
+            "最多重复 4 个 epoch，之后收益快速衰减",
+            "arXiv 2305.16264"
+          ],
+          [
+            "推理时计算",
+            "固定模型",
+            "RL 训练的推理策略 + 长思维链，效果持续提升",
+            "arXiv 2501.12948"
+          ]
+        ],
+        "caption": "注：算力最优系数依赖具体数据与架构，需在自己设定上重新拟合"
+      }
+    },
+    {
+      "heading": "适用边界",
+      "body": "<ul><li><strong>Scaling Law 有适用区间</strong>：只在特定模型规模区间内拟合良好，外推到极小或极大模型时误差显著放大</li><li><strong>数据受限是当前现实</strong>：高质量文本正在接近耗尽，这使得「数据质量」「合成数据」比「参数规模」成为更关键的边际变量</li><li><strong>涌现不可作为采购依据</strong>：不要因为「某个能力在 70B 才出现」就假定 7B 版本一定做不到，端到端工程（提示、工具、后处理）常常能补上差距</li><li><strong>推理时 scaling 有延迟代价</strong>：用更多推理算力换效果，在高 QPS 在线场景下未必划算，需要算 ROI</li></ul>",
+      "refs": [
+        {
+          "title": "Training Compute-Optimal Large Language Models (Chinchilla)",
+          "url": "https://arxiv.org/abs/2203.15556"
+        },
+        {
+          "title": "Beyond the Imitation Game (原始 Kaplan Scaling Laws)",
+          "url": "https://arxiv.org/abs/2001.08361"
+        },
+        {
+          "title": "Emergent Abilities of Large Language Models (TWEED - 涌现方观点)",
+          "url": "https://arxiv.org/abs/2304.15004"
+        },
+        {
+          "title": "Are Emergent Abilities of Large Language Models a Mirage? (Schaeffer et al.)",
+          "url": "https://arxiv.org/abs/2304.15004"
+        },
+        {
+          "title": "Scaling Data-Constrained Language Models (Muennighoff et al.)",
+          "url": "https://arxiv.org/abs/2305.16264"
+        },
+        {
+          "title": "DeepSeek-R1: Incentivizing Reasoning Capability in LLMs via Reinforcement Learning",
+          "url": "https://arxiv.org/abs/2501.12948"
+        }
+      ]
+    }
+  ]
+}

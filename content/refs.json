@@ -1,0 +1,158 @@
+{
+  "title": "参考文献总索引",
+  "summary": "本综述引用的全部论文与技术报告，按阶段分类。链接均为 arXiv 或官方文档地址。",
+  "updated_at": "2026-11-05",
+  "sections": [
+    {
+      "heading": "综述与基础理论",
+      "refs": [
+        {"title": "Attention Is All You Need (Transformer)", "url": "https://arxiv.org/abs/1706.03762", "note": "2017 · 架构基础"},
+        {"title": "BERT: Pre-training of Deep Bidirectional Transformers", "url": "https://arxiv.org/abs/1810.04805", "note": "2018 · Encoder 路线代表"},
+        {"title": "Exploring the Limits of Transfer Learning with a Unified Text-to-Text Transformer", "url": "https://arxiv.org/abs/2010.11929", "note": "2019 · T5 与架构选型实证"},
+        {"title": "Language Models are Few-Shot Learners (GPT-3)", "url": "https://arxiv.org/abs/2005.14165", "note": "2020 · Decoder-only 规模化"},
+        {"title": "On the Opportunities and Risks of Foundation Models", "url": "https://arxiv.org/abs/2108.07258", "note": "2021 · 基础模型概念"},
+        {"title": "Training Compute-Optimal Large Language Models (Chinchilla)", "url": "https://arxiv.org/abs/2203.15556", "note": "2022 · 算力最优缩放"}
+      ]
+    },
+    {
+      "heading": "数据",
+      "refs": [
+        {"title": "The Pile: An 800GB Dataset of Diverse Text for Language Modeling", "url": "https://arxiv.org/abs/2101.00027", "note": "2020 · 首个大型训练语料"},
+        {"title": "Document-level Deduplication", "url": "https://arxiv.org/abs/2107.06499", "note": "2021 · MinHash 去重"},
+        {"title": "CCNet: Extracting High Quality Monolingual Datasets from Web", "url": "https://arxiv.org/abs/2107.07007", "note": "2021 · 质量过滤"},
+        {"title": "RefinedWeb: A Falcon Large Language Model with Superior Performance", "url": "https://arxiv.org/abs/2306.01116", "note": "2023 · 启发式清洗流水线"},
+        {"title": "FineWeb: decanting the web for the finest text data at scale", "url": "https://arxiv.org/abs/2406.17557", "note": "2024 · 分类器过滤"},
+        {"title": "FineWeb-Edu: an educational quality classifier for web text", "url": "https://huggingface.co/blog/FineWeb-Edu", "note": "2024 · 教育性分类器"},
+        {"title": "DataComp-LM / DCLM", "url": "https://arxiv.org/abs/2406.11794", "note": "2024 · 数据竞赛式对比实验"},
+        {"title": "Data Mixing Laws", "url": "https://arxiv.org/abs/2403.16952", "note": "2024 · 配比的经验规律"},
+        {"title": "DoReMi: Optimizing Data Mixtures", "url": "https://arxiv.org/abs/2305.10429", "note": "2023 · 代理模型优化配比"},
+        {"title": "Scaling Data-Constrained Language Models", "url": "https://arxiv.org/abs/2305.16264", "note": "2023 · 数据受限下的重复训练"}
+      ]
+    },
+    {
+      "heading": "架构与训练效率",
+      "refs": [
+        {"title": "Root Mean Square Layer Normalization", "url": "https://arxiv.org/abs/1910.01167", "note": "2019 · RMSNorm"},
+        {"title": "GLU Variants Improve Transformer", "url": "https://arxiv.org/abs/2002.05202", "note": "2020 · SwiGLU / GeGLU"},
+        {"title": "RoFormer: Enhanced Transformer with Rotary Position Embedding", "url": "https://arxiv.org/abs/2104.09864", "note": "2021 · RoPE"},
+        {"title": "On Layer Normalization in the Transformer Architecture", "url": "https://arxiv.org/abs/2002.04745", "note": "2020 · Pre-LN 分析"},
+        {"title": "Switch Transformers: Scaling to Trillion Parameter Models", "url": "https://arxiv.org/abs/2101.03961", "note": "2021 · MoE 路由"},
+        {"title": "GLaM: Efficient Scaling of Language Models with Mixture-of-Experts", "url": "https://arxiv.org/abs/2112.06932", "note": "2021 · 大规模 MoE"},
+        {"title": "ST-MoE: Designing Stable and Transferable Sparse Expert Models", "url": "https://arxiv.org/abs/2202.08906", "note": "2022 · Router Z-Loss"},
+        {"title": "GQA: Training Generalized Multi-Query Transformer Models", "url": "https://arxiv.org/abs/2305.13245", "note": "2023 · GQA"},
+        {"title": "DeepSeek-V2", "url": "https://arxiv.org/abs/2405.04434", "note": "2024 · MLA"},
+        {"title": "DeepSeek-V3 Technical Report", "url": "https://arxiv.org/abs/2412.19437", "note": "2024 · 细粒度 MoE + DualPipe"},
+        {"title": "ZeRO: Memory Optimizations Toward Training Trillion Parameter Models", "url": "https://arxiv.org/abs/1910.02054", "note": "2019 · ZeRO-1/2/3"},
+        {"title": "PipeDream: Fast and Efficient Pipeline Parallel DNN Training", "url": "https://arxiv.org/abs/1811.06965", "note": "2018 · 1F1B 调度"},
+        {"title": "Efficient Large-Scale Language Model Training on GPU Clusters Using Megatron-LM", "url": "https://arxiv.org/abs/2104.04473", "note": "2021 · Interleaved 1F1B"},
+        {"title": "PyTorch FSDP: Experiences on Scaling Fully Sharded Data Parallel", "url": "https://arxiv.org/abs/2304.11277", "note": "2023 · FSDP"},
+        {"title": "Training Deep Nets with Sublinear Memory Cost", "url": "https://arxiv.org/abs/2004.13337", "note": "2020 · 激活重计算"},
+        {"title": "Mixture-of-Depths: Dynamically allocating compute", "url": "https://arxiv.org/abs/2404.02258", "note": "2024 · 逐层计算深度"}
+      ]
+    },
+    {
+      "heading": "长上下文",
+      "refs": [
+        {"title": "Scaling Laws of Long-Context Language Models (Position Interpolation)", "url": "https://arxiv.org/abs/2306.15595", "note": "2023 · 位置插值"},
+        {"title": "YaRN: Efficient Context Window Extension of LLMs", "url": "https://arxiv.org/abs/2309.00071", "note": "2023 · NTK-aware / YaRN"},
+        {"title": "LongLoRA: Efficient Fine-tuning of Long-Context LLMs", "url": "https://arxiv.org/abs/2309.12307", "note": "2023 · 低成本扩展"},
+        {"title": "LongNet: Scaling Long-Context Transformers Beyond 1M Tokens", "url": "https://arxiv.org/abs/2306.15390", "note": "2023 · 分块注意力"},
+        {"title": "LongRoPE: Extending LLM Context Window Beyond 2 Million Tokens", "url": "https://arxiv.org/abs/2402.13753", "note": "2024 · 非均匀插值"},
+        {"title": "Efficient Streaming Language Models with Attention Sinks", "url": "https://arxiv.org/abs/2309.17453", "note": "2023 · Attention Sink"},
+        {"title": "Ring Attention with Blockwise Transformers", "url": "https://arxiv.org/abs/2310.01889", "note": "2023 · 环形注意力"},
+        {"title": "Native Sparse Attention", "url": "https://arxiv.org/abs/2507.04688", "note": "2025 · 硬件级稀疏"}
+      ]
+    },
+    {
+      "heading": "后训练与对齐",
+      "refs": [
+        {"title": "Training language models to follow instructions with human feedback", "url": "https://arxiv.org/abs/2203.02155", "note": "2022 · InstructGPT / RLHF"},
+        {"title": "Self-Instruct: Aligning Language Models with Self-Generated Instructions", "url": "https://arxiv.org/abs/2212.10560", "note": "2022 · 指令合成"},
+        {"title": "Less Is More for Alignment (LIMA)", "url": "https://arxiv.org/abs/2305.11206", "note": "2023 · 1K 数据"},
+        {"title": "AlpaGasus: Training a Better Alpaca with Fewer Data", "url": "https://arxiv.org/abs/2307.08701", "note": "2023 · 质量筛选"},
+        {"title": "WizardLM / Evol-Instruct", "url": "https://arxiv.org/abs/2304.12244", "note": "2023 · 指令演化"},
+        {"title": "Magpie: Alignment Data Synthesis from Scratch", "url": "https://arxiv.org/abs/2312.16136", "note": "2023 · 无种子合成"},
+        {"title": "Direct Preference Optimization (DPO)", "url": "https://arxiv.org/abs/2305.18290", "note": "2023 · DPO"},
+        {"title": "IPO: A General Theoretical Paradigm", "url": "https://arxiv.org/abs/2310.12036", "note": "2023 · IPO"},
+        {"title": "KTO: Model Alignment as Prospect Theoretic Optimization", "url": "https://arxiv.org/abs/2402.01306", "note": "2024 · 二元反馈"},
+        {"title": "SimPO: Simple Preference Optimization with a Reference-Free Reward", "url": "https://arxiv.org/abs/2405.14734", "note": "2024 · 无参考模型"},
+        {"title": "Scaling Laws for Reward Model Overoptimization", "url": "https://arxiv.org/abs/2310.07716", "note": "2023 · reward hacking"},
+        {"title": "Let's Verify Step by Step (Math-PRM)", "url": "https://arxiv.org/abs/2402.14759", "note": "2024 · 过程奖励"},
+        {"title": "A Long Way to Go: Investigating Length Correlations in RLHF", "url": "https://arxiv.org/abs/2310.06841", "note": "2023 · 长度偏差"}
+      ]
+    },
+    {
+      "heading": "强化学习与推理",
+      "refs": [
+        {"title": "DeepSeekMath (GRPO)", "url": "https://arxiv.org/abs/2402.03300", "note": "2024 · GRPO"},
+        {"title": "DeepSeek-R1", "url": "https://arxiv.org/abs/2501.12948", "note": "2025 · 纯 RL 涌现推理"},
+        {"title": "DAPO", "url": "https://arxiv.org/abs/2503.14476", "note": "2025 · 动态采样"},
+        {"title": "GSPO: Group Sequence Policy Optimization", "url": "https://arxiv.org/abs/2507.18071", "note": "2025 · 序列级比率"},
+        {"title": "Tuning Language Models with Verifiable Rewards", "url": "https://arxiv.org/abs/2504.12537", "note": "2025 · RLVR 实证"},
+        {"title": "Open-Reasoner-Zero", "url": "https://arxiv.org/abs/2503.24252", "note": "2025 · 开源复现"},
+        {"title": "Let's Verify Step by Step", "url": "https://arxiv.org/abs/2305.20050", "note": "2023 · 推理评测方法"}
+      ]
+    },
+    {
+      "heading": "Agent 与工具使用",
+      "refs": [
+        {"title": "ReAct: Synergizing Reasoning and Acting in Language Models", "url": "https://arxiv.org/abs/2210.03629", "note": "2022 · 推理-行动循环"},
+        {"title": "Toolformer: Language Models Can Teach Themselves to Use Tools", "url": "https://arxiv.org/abs/2302.04761", "note": "2023 · 自监督工具学习"},
+        {"title": "AgentInstruct", "url": "https://arxiv.org/abs/2404.08634", "note": "2024 · 轨迹蒸馏"},
+        {"title": "WebArena", "url": "https://arxiv.org/abs/2307.13854", "note": "2023 · 网页 Agent 基准"},
+        {"title": "SWE-bench", "url": "https://arxiv.org/abs/2310.06770", "note": "2023 · 真实 issue 修复"},
+        {"title": "SWE-bench Verified", "url": "https://arxiv.org/abs/2410.06992", "note": "2024 · 修正版"},
+        {"title": "τ-bench", "url": "https://arxiv.org/abs/2406.12045", "note": "2024 · 工具-用户交互"},
+        {"title": "GAIA: a benchmark for General AI Assistants", "url": "https://arxiv.org/abs/2311.12983", "note": "2023 · 通用助理基准"}
+      ]
+    },
+    {
+      "heading": "推理与部署",
+      "refs": [
+        {"title": "vLLM: Easy, Fast, and Cheap LLM Serving with PagedAttention", "url": "https://arxiv.org/abs/2309.06180", "note": "2023 · PagedAttention"},
+        {"title": "SGLang", "url": "https://arxiv.org/abs/2312.07104", "note": "2023 · RadixAttention"},
+        {"title": "Orca (continuous batching)", "url": "https://arxiv.org/abs/2306.02677", "note": "2023 · 连续批处理"},
+        {"title": "DistServe", "url": "https://arxiv.org/abs/2401.09670", "note": "2024 · PD 分离"},
+        {"title": "Splitwise", "url": "https://arxiv.org/abs/2311.18877", "note": "2023 · 阶段拆分"},
+        {"title": "Fast Inference from Transformers via Speculative Decoding", "url": "https://arxiv.org/abs/2211.17192", "note": "2022 · 投机解码"},
+        {"title": "SpecInfer", "url": "https://arxiv.org/abs/2305.09781", "note": "2023 · 树状草稿"},
+        {"title": "EAGLE", "url": "https://arxiv.org/abs/2401.15077", "note": "2024 · 特征级自投机"},
+        {"title": "EAGLE-2", "url": "https://arxiv.org/abs/2406.16838", "note": "2024 · 动态草稿树"},
+        {"title": "Medusa", "url": "https://arxiv.org/abs/2401.10774", "note": "2024 · 多头预测"},
+        {"title": "REST: Retrieval-Based Speculative Decoding", "url": "https://arxiv.org/abs/2311.08252", "note": "2023 · 免草稿模型"},
+        {"title": "FlashAttention-2", "url": "https://arxiv.org/abs/2307.08691", "note": "2023 · 算子优化"},
+        {"title": "KIVI: A Tuning-Free Asymmetric 2bit Quantization for KV Cache", "url": "https://arxiv.org/abs/2402.02750", "note": "2024 · KV 量化"},
+        {"title": "GPTQ", "url": "https://arxiv.org/abs/2210.17323", "note": "2022 · 权重量化"},
+        {"title": "AWQ", "url": "https://arxiv.org/abs/2306.00978", "note": "2023 · 激活感知量化"},
+        {"title": "SmoothQuant", "url": "https://arxiv.org/abs/2211.10438", "note": "2022 · 难度迁移"},
+        {"title": "AutoRound", "url": "https://arxiv.org/abs/2309.05516", "note": "2023 · 学习式舍入"},
+        {"title": "FP8 Formats for Deep Learning", "url": "https://arxiv.org/abs/2209.05433", "note": "2022 · FP8 格式"},
+        {"title": "Optimizing LLM Inference Using FP4 Quantization", "url": "https://arxiv.org/abs/2412.21753", "note": "2024 · NVFP4"},
+        {"title": "MInference", "url": "https://arxiv.org/abs/2407.02490", "note": "2024 · 动态稀疏"}
+      ]
+    },
+    {
+      "heading": "评测",
+      "refs": [
+        {"title": "Judging LLM-as-a-Judge with MT-Bench and Chatbot Arena", "url": "https://arxiv.org/abs/2306.05685", "note": "2023 · judge 方法论"},
+        {"title": "Large Language Models are not Fair Evaluators", "url": "https://arxiv.org/abs/2305.17926", "note": "2023 · 位置与自偏好偏差"},
+        {"title": "Chatbot Arena", "url": "https://arxiv.org/abs/2403.04132", "note": "2024 · Bradley-Terry Elo"},
+        {"title": "LiveCodeBench", "url": "https://arxiv.org/abs/2403.07974", "note": "2024 · 动态代码基准"},
+        {"title": "GPQA: A Graduate-Level Google-Proof Q&A Benchmark", "url": "https://arxiv.org/abs/2311.12022", "note": "2023 · 专家级问答"}
+      ]
+    },
+    {
+      "heading": "多模态",
+      "refs": [
+        {"title": "Visual Instruction Tuning (LLaVA)", "url": "https://arxiv.org/abs/2304.08485", "note": "2023 · 视觉指令微调"},
+        {"title": "BLIP-2", "url": "https://arxiv.org/abs/2301.12597", "note": "2023 · Q-Former"},
+        {"title": "Qwen-VL", "url": "https://arxiv.org/abs/2308.12966", "note": "2023 · 动态分辨率"},
+        {"title": "InternVL", "url": "https://arxiv.org/abs/2312.14238", "note": "2023 · 大规模多模态预训练"},
+        {"title": "Emu3", "url": "https://arxiv.org/abs/2309.15838", "note": "2023 · 统一离散化"},
+        {"title": "Fuyu-8B", "url": "https://arxiv.org/abs/2309.10013", "note": "2023 · 原生多模态"},
+        {"title": "GPT-4o Technical Report", "url": "https://arxiv.org/abs/2410.00037", "note": "2024 · 端到端原生"},
+        {"title": "ULip", "url": "https://arxiv.org/abs/2212.05171", "note": "2022 · 统一表征"}
+      ]
+    }
+  ]
+}
