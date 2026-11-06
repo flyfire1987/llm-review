@@ -52,6 +52,11 @@ RSS_SOURCES = [
 RSS_MAX_ITEMS = 20         # 每个 RSS 源最多取多少条
 RSS_SOURCE_NAMES = {s[0] for s in RSS_SOURCES} | {'Hacker News', '36氪'}
 
+# 中文源：在「业界动态」栏保底 1 个名额
+# 背景：中文媒体内容偏产品发布/财报，命中技术点关键词少（实测 11-06
+# 量子位 9 条最高仅 1 分），按分数排序会被 arXiv 挤成 0 条入选。
+CN_SOURCES = ['量子位', '机器之心', '36氪']
+
 
 def _log(msg):
     print(f'[{datetime.now().strftime("%H:%M:%S")}] {msg}', flush=True)
@@ -614,8 +619,42 @@ def score_and_pick(items, topics, seen, daily_max, news_max=0):
     industry = [s for s in industry
                 if s['_key'] not in paper_keys and s['_fp'] not in paper_fps]
 
+    # 中文源保底：业界栏按分数排完，量子位/机器之心这类中文源可能
+    # 因内容偏产品发布、命中关键词少而被挤出（实测 11-06 量子位 9 条全灭）。
+    # 故给每个中文源保底 1 个名额：从该源候选里挑分数最高的补进业界栏。
+    industry = _apply_cn_quota(industry, news_max, CN_SOURCES)
+
     _log(f'  论文栏 {len(papers[:daily_max])} 条 / 业界栏 {len(industry[:news_max])} 条')
     return papers[:daily_max], industry[:news_max]
+
+
+def _apply_cn_quota(industry, news_max, cn_sources):
+    """给中文源在业界栏保底名额。
+
+    规则：每个中文源最多保底 1 条；保底条目优先于分数最低的普通条目，
+    但不打乱其余条目的相对顺序。
+    """
+    if not cn_sources or news_max <= 0:
+        return industry
+
+    chosen = industry[:news_max]
+    picked_sources = {s.get('source') for s in chosen}
+
+    for src in cn_sources:
+        if src in picked_sources:
+            continue                      # 该源已有条目入选
+        cands = [s for s in industry if s.get('source') == src]
+        if not cands:
+            continue                      # 该源本轮没抓到/没命中
+        # 该源最高分的候选
+        best = max(cands, key=lambda x: x['_score'])
+        # 挤出当前分数最低的一条（保留其位置语义：补到末尾再整体按分数排）
+        if len(chosen) >= news_max:
+            chosen = sorted(chosen, key=lambda x: -x['_score'])[:-1]
+        chosen.append(best)
+        picked_sources.add(src)
+
+    return sorted(chosen, key=lambda x: -x['_score'])[:news_max]
 
 
 def build_entry(item, topics):
@@ -711,8 +750,23 @@ def main():
     paper_entries = entries[:n_paper]
     news_entries = entries[n_paper:]
 
-    existing['items'] = paper_entries + existing.get('items', [])
-    existing['news_items'] = news_entries + existing.get('news_items', [])
+    # 按 URL 去重后再合并：同一天多次运行（调试重跑、补抓）时，
+    # 新条目排在前面，已存在的旧条目不能重复追加。
+    # 否则会出现「论文 20 条 / 业界 12 条」这种超出上限的累积。
+    def _merge(new_items, old_items):
+        seen_urls = set()
+        out = []
+        for e in new_items + list(old_items):
+            u = e.get('url', '')
+            if u and u in seen_urls:
+                continue
+            if u:
+                seen_urls.add(u)
+            out.append(e)
+        return out
+
+    existing['items'] = _merge(paper_entries, existing.get('items', []))
+    existing['news_items'] = _merge(news_entries, existing.get('news_items', []))
     existing['updated_at'] = datetime.now().isoformat(timespec='seconds')
     store.save_news(target_date, existing)
     _log(f'  ✓ content/news/{target_date}.json '
