@@ -1,7 +1,7 @@
 {
   "title": "量化与算子优化",
   "summary": "量化是推理降本的最直接手段——INT8/FP8 几乎无损，INT4 需要注意量化粒度与 outlier 处理，选错方案掉点会很明显。",
-  "updated_at": "2026-11-04",
+  "updated_at": "2026-11-06",
   "sections": [
     {
       "heading": "量化基础",
@@ -124,6 +124,9 @@
       "tldr": "自动同步的技术动态（每日 03:00 任务写入），随领域进展更新。",
       "body": "<p>以下条目由每日同步任务自动追加，按时间倒序排列，<strong>原文链接</strong>可直达原论文/原文。</p>",
       "points": [
+        "[2026-11-05] **StrataFlux ：内存层次结构-本机低位LLM推理**（arXiv）— Quantization reduces the memory and bandwidth demands of large language model (LLM) inference but can degrade accuracy; offloading higher-precision data can ins 原文：http://arxiv.org/abs/2611.08363",
+        "[2026-11-05] **ZYFA ： FP8 FlashAttention在AMD CDNA4上的速度和准确度**（arXiv）— Attention is a core building block of frontier models and often dominates compute-bound prefill at long context. FP8 matrix instructions offer twice the peak th 原文：http://arxiv.org/abs/2611.07496",
+        "[2026-11-05] **TriAttention ：用于Long-Context LLM推理的统一稀疏混合精度Attention**（arXiv）— Sparsity and quantization reduce the cost of attention by skipping interactions and lowering the precision of those retained. However, useful interactions diffe 原文：http://arxiv.org/abs/2611.07256",
         "[2026-11-04] **平衡层次表示和量化：文本嵌入中的性能权衡**（arXiv）— Hierarchical text embedding models offer variable-length representations, while quantization reduces numerical precision; both aim to improve computational effi 原文：http://arxiv.org/abs/2611.06859",
         "[2026-11-03] **跑道角色：提供57B视频Diffusion Transformer进行实时对话**（arXiv）— Conversational video characters must generate video as fast as it plays, for one user at a time: at 24 fps, a sustained 166.7 ms per four-frame chunk at batch s 原文：http://arxiv.org/abs/2611.05642",
         "[2026-11-02] **EpiLoRA ：将许多LoRA适配器融合到用于服务的低精度GEMM和RL中**（arXiv）— Low-rank adapters (LoRA) let one base model serve many fine-tuned variants: multi-tenant engines keep a single copy of the base and batch the requests of many t 原文：http://arxiv.org/abs/2611.03899"

@@ -1,7 +1,7 @@
 {
   "title": "多模态模型",
   "summary": "多模态的主流方案是「冻结视觉编码器 + 投影层 + 文本 LLM」，而不是从头做统一的离散化 token——后者更优雅但成本高得多。",
-  "updated_at": "2026-11-04",
+  "updated_at": "2026-11-06",
   "sections": [
     {
       "heading": "三种主流架构路线",
@@ -123,9 +123,14 @@
       "tldr": "自动同步的技术动态（每日 03:00 任务写入），随领域进展更新。",
       "body": "<p>以下条目由每日同步任务自动追加，按时间倒序排列，<strong>原文链接</strong>可直达原论文/原文。</p>",
       "points": [
+        "[2026-11-06] **Show HN ：为~ $ 20K （ Apache 2.0权重）训练的文本到图像模型**（Hacker News）—  原文：https://www.linum.ai/field-notes/pjit-21k",
+        "[2026-11-05] **RM-VLM ：从自然语言任务描述到基于视觉的奖励机器**（arXiv）— Reward machines (RMs) have been proposed as a reward formulation in reinforcement learning (RL) to capture non-Markovian tasks where credit assignment depends o 原文：http://arxiv.org/abs/2611.08308",
+        "[2026-11-04] **可视化Token路由：学习保留重要的代币**（arXiv）— Computer-use agents (CUAs) have recently achieved superhuman performance on several long-horizon benchmarks. However, their computational cost limits their use  原文：http://arxiv.org/abs/2611.06854",
+        "[2026-11-04] **批量条件语义锚点，用于强大的视觉传导适应--语言模型**（arXiv）— Transductive adaptation improves vision-language models at test time by refining predictions on an unlabeled batch, but current methods face a key trade-off. Ag 原文：http://arxiv.org/abs/2611.06993",
+        "[2026-11-05] **WeLM-Image ：面向视觉智能的统一图像生成模型**（arXiv）— We present \\textbf{WeLM-Image}, a unified image foundation model that integrates multimodal understanding into text-to-image generation, instruction-guided edit 原文：http://arxiv.org/abs/2611.07392",
+        "[2026-11-04] **成分不一致：大型视觉语言模型中的审核安全性**（arXiv）— Large vision-language models (LVLMs) are vulnerable to compositional harm: an image and a prompt that are benign in isolation become harmful through the model's 原文：http://arxiv.org/abs/2611.07216",
         "[2026-11-04] **《Grounding in the Dark: Text-Only Training for Zero-Shot Video Temporal Localization》**（arXiv）— Video-LLMs are typically trained on paired video-text data for temporal tasks, yet collecting precise temporal annotations and training on large-scale video dat 原文：http://arxiv.org/abs/2611.06149",
-        "[2026-11-04] **NTCIR-19 SciClaimEval任务概述：科学论文中的跨模式索赔验证**（arXiv）— This paper presents an overview of \\emph{SciClaimEval}, a pilot task at NTCIR-19 on verifying scientific claims against the tables and figures of the papers in  原文：http://arxiv.org/abs/2611.06090",
-        "[2026-11-04] **ModalSearcher ：将视觉证据编织到自主跨模态深度搜索中**（arXiv）— Static and incomplete parametric knowledge limits the performance of multimodal large language models on novel-knowledge and knowledge-intensive tasks, especial 原文：http://arxiv.org/abs/2611.06131"
+        "[2026-11-04] **NTCIR-19 SciClaimEval任务概述：科学论文中的跨模式索赔验证**（arXiv）— This paper presents an overview of \\emph{SciClaimEval}, a pilot task at NTCIR-19 on verifying scientific claims against the tables and figures of the papers in  原文：http://arxiv.org/abs/2611.06090"
       ]
     }
   ]

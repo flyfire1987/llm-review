@@ -8,6 +8,7 @@ import json
 import os
 import re
 import threading
+from datetime import datetime
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 CONTENT_DIR = os.path.join(BASE_DIR, 'content')
@@ -173,7 +174,9 @@ MERGE_HEADING = '📌 最新进展'
 def merge_into_page(slug, entry):
     """把一条动态合并进技术点页的『📌 最新进展』区块。
 
-    entry 结构：{title_zh, title_en, url, source, date, note}
+    entry 结构：{title_zh, title_en, url, source, date, note, collected_at}
+      - date         : 论文/原文的发表日（可能早于收录日）
+      - collected_at : 本条被收录进页面的时间（ISO 日期）
     返回 True 表示写入成功，False 表示跳过（页面不存在 / 已收录）。
     """
     page = load_page(slug)
@@ -217,7 +220,10 @@ def merge_into_page(slug, entry):
     if len(points) > max_n:
         del points[max_n:]
 
-    page['updated_at'] = entry.get('date', '')
+    # updated_at 记录「页面内容最后一次变更的时间」（收录日），
+    # 而不是论文发表日 —— 论文日可能早于收录日多天，
+    # 曾经导致 updated_at 倒退，页面看起来"很久没更新"。
+    page['updated_at'] = entry.get('collected_at') or datetime.now().strftime('%Y-%m-%d')
     save_page(slug, page)
     return True
 

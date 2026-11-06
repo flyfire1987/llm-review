@@ -1,7 +1,7 @@
 {
   "title": "强化学习算法",
   "summary": "LLM 上的 RL 从 PPO 转向 GRPO 等去 value model 的方法，核心驱动力是稳定性与显存效率；RLVR（可验证奖励）成为提升推理能力的主力手段。",
-  "updated_at": "2026-11-04",
+  "updated_at": "2026-11-06",
   "sections": [
     {
       "heading": "RL 在 LLM 上的定位",
@@ -119,14 +119,14 @@
       "tldr": "自动同步的技术动态（每日 03:00 任务写入），随领域进展更新。",
       "body": "<p>以下条目由每日同步任务自动追加，按时间倒序排列，<strong>原文链接</strong>可直达原论文/原文。</p>",
       "points": [
-        "[2026-11-04] **两次使用体验：特权Token级学分分配的动态流程评分细则表**（arXiv）— Agent trajectories often contain both successful decisions and failed attempts, yet optimization with sparse trajectory-level rewards struggles to identify whic 原文：http://arxiv.org/abs/2611.06543",
-        "[2026-11-04] **RAGAM-AI ：基于生成式AI的混合强化学习Agentic边缘资源管理方法**（arXiv）— Resource management for distributed edge networks hosting different services has been handled efficiently using Reinforcement learning (RL). Reward generalizati 原文：http://arxiv.org/abs/2611.06554",
-        "[2026-11-04] **批量生产具有令人惊讶的副作用的培训数据**（arXiv）— Training data can have unexpected side effects on language model behavior outside the training domain: insecure code data can induce broad misalignment, and out 原文：http://arxiv.org/abs/2611.06324",
-        "[2026-11-04] **Turns Matter ：通过Turn-Level Credit推进流媒体视频RL**（arXiv）— Streaming video understanding requires models to repeatedly decide whether to respond or continue observing. Recently, Group Relative Policy Optimization (GRPO) 原文：http://arxiv.org/abs/2611.06728",
-        "[2026-11-04] **大纲课程RL ：利用不可验证领域的生成验证差距**（arXiv）— Reinforcement learning with verifiable rewards (RLVR) has led to significant gains in math and code generation. Extending these gains to open-ended domains rema 原文：http://arxiv.org/abs/2611.06244",
-        "[2026-11-04] **从手工制作到生成： Alexa +的RLVR优化图标生成**（arXiv）— Alexa+ devices with screens display animated icons during conversations to visually reinforce what is being said. The original set of these icons was hand-drawn 原文：http://arxiv.org/abs/2611.06123",
-        "[2026-11-04] **Traffic-VL ：用于通用端到端交通信号控制的强化视觉语言模型**（arXiv）— Existing traffic signal control methods typically rely on structured traffic states produced by dedicated perception pipelines. Emerging visual approaches often 原文：http://arxiv.org/abs/2611.06353",
-        "[2026-11-04] **EmoReward ：情感视频生成自我进化奖励校准RL**（arXiv）— Group Relative Policy Optimization (GRPO) has advanced generative model post-training in verifiable domains such as code and mathematics, but evaluating video q 原文：http://arxiv.org/abs/2611.06518"
+        "[2025-06-16] **麻省理工学院研究人员推出“SEAL” ：迈向自我完善人工智能的新步骤**（机器之心）— 麻省理工学院引入了SEAL ，这是一个框架，使大型语言模型能够通过强化学习进行自我编辑和更新其权重。麻省理工学院的研究人员揭开了“SEAL”的面纱：迈向自我完善AI的新步骤首次出现在Synced上。 原文：https://syncedreview.com/2025/06/16/mit-researchers-unveil-seal-a-new-step-towards-self-improving-ai/",
+        "[2026-11-05] **收件人SR ： Attention步进奖励长地平线Agentic RL**（arXiv）— Long-horizon LLM agents make multi-step decisions, yet outcome-reward-only reinforcement learning provides little direct supervision for individual steps. We in 原文：http://arxiv.org/abs/2611.07932",
+        "[2026-11-05] **通过大规模并行加速安全强化学习**（arXiv）— We investigate the problem of scaling safe reinforcement learning (safe RL) to massively parallel training regimes, where a large number of environments are exe 原文：http://arxiv.org/abs/2611.08273",
+        "[2026-11-05] **针对GRPO解压缩强弱OPD的计算效率**（arXiv）— On-policy distillation (OPD) trains a student on its own rollouts under a frozen teacher's per-token supervision. Does this dense signal reduce the training FLO 原文：http://arxiv.org/abs/2611.08453",
+        "[2026-11-04] **MAC-v2 ：基于长视野模型的像素值扩展**（arXiv）— We study whether \\emph{long-horizon model-based value expansion} can serve as an effective framework in pixel-based offline reinforcement learning (RL). Long-ho 原文：http://arxiv.org/abs/2611.07245",
+        "[2025-04-30] **DeepSeek推出DeepSeek-Prover-V2 ：利用递归证明搜索和新基准推进神经定理证明**（机器之心）— DeepSeek AI发布了DeepSeek-Prover-V2 ，这是一个用于精益4定理证明的开源LLM。它使用DeepSeek-V3的递归证明搜索来训练数据和强化学习，在MiniF2F上获得最佳结果。DeepSeek发布了DeepSeek-Prover-V2 ：使用递归证明搜索推进神经定理证明和新基准首次出现在Sy 原文：https://syncedreview.com/2025/04/30/deepseek-unveils-deepseek-prover-v2-advancing-neural-theorem-proving-with-recursive-proof-search-and-a-new-benchmark/",
+        "[2026-11-05] **PSGAgent ：通过Agentic Reasoning增强MLLMs用于全景场景图生成的动态视觉感知**（arXiv）— Panoptic Scene Graph generation (PSG) requires holistic yet fine-grained reasoning over complex relations among objects. However, current Multimodal Large Langu 原文：http://arxiv.org/abs/2611.07408",
+        "[2026-11-03] **章鱼：潜伏KV Multi-Agent强化学习的一个大脑，多个分支**（arXiv）— Multi-agent LLM systems explore in parallel by spawning sub-agents with isolated context windows, whereas single-agent systems append every search and verificat 原文：http://arxiv.org/abs/2611.06956"
       ]
     }
   ]

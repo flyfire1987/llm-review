@@ -136,8 +136,12 @@ def news_index():
     entries = []
     for d in dates:
         data = store.load_news(d) or {}
-        entries.append({'date': d, 'items': data.get('items', [])})
-    total = sum(len(e['items']) for e in entries)
+        entries.append({
+            'date': d,
+            'items': data.get('items', []),
+            'news_items': data.get('news_items', []),
+        })
+    total = sum(len(e['items']) + len(e['news_items']) for e in entries)
     return render_template('news.html', nav=nav, entries=entries,
                            dates=dates, total=total)
 

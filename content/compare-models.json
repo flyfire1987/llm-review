@@ -1,7 +1,7 @@
 {
   "title": "主流模型参数对比",
   "summary": "一张表看清主流模型的规模、上下文、架构与许可证——参数不再是主要区分维度，许可证和部署成本往往更关键。",
-  "updated_at": "2026-11-04",
+  "updated_at": "2026-11-06",
   "sections": [
     {
       "heading": "怎么看这张表",
@@ -193,6 +193,7 @@
       "tldr": "自动同步的技术动态（每日 03:00 任务写入），随领域进展更新。",
       "body": "<p>以下条目由每日同步任务自动追加，按时间倒序排列，<strong>原文链接</strong>可直达原论文/原文。</p>",
       "points": [
+        "[2026-10-13] **Gemini 4 Argon ：专为解决您最棘手的问题而设计**（Google AI）— 我们为开发人员、企业、科学家和消费者提供最新的前沿模型Gemini 4 Argon。 原文：https://blog.google/innovation-and-ai/models-and-research/gemini-models/introducing-gemini-4-argon/",
         "[2026-11-04] **将整数网格转换为空间直觉：感知，而不是规划，管理ARC-AGI-3**（arXiv）— Sample-efficient fluid intelligence requires agents that rapidly form working models of unfamiliar interactive environments. ARC-AGI-3 tests this across uninstr 原文：http://arxiv.org/abs/2611.06793"
       ]
     }

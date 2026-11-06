@@ -557,3 +557,43 @@ a:hover { text-decoration: underline; }
   .doc { padding: 20px 18px 24px; }
   .page-head { flex-direction: column; gap: 12px; }
 }
+
+/* ── 每日动态分栏（论文 / 业界）───────────────────── */
+.news-section { margin-top: 26px; }
+.news-section:first-of-type { margin-top: 18px; }
+.news-section-head {
+  display: flex; align-items: baseline; gap: 10px;
+  padding-bottom: 9px; margin-bottom: 13px;
+  border-bottom: 2px solid var(--line);
+}
+.news-section-title {
+  font-size: 17px; font-weight: 800; margin: 0;
+  color: var(--text); display: flex; align-items: center; gap: 7px;
+}
+.news-section-count {
+  font-size: 12px; color: var(--text-mute);
+  font-variant-numeric: tabular-nums;
+}
+.news-section-hint {
+  font-size: 12px; color: var(--text-mute); margin-left: auto;
+}
+
+/* 论文栏：左侧蓝色强调条 */
+.news-section-paper .news-card { border-left-color: var(--accent); }
+/* 业界栏：左侧橙色强调条 + 略浅底色 */
+.news-section-industry .news-card {
+  border-left-color: #e08c1f; background: #fdfaf5;
+}
+.news-section-industry .tag-src { background: #fdf0e3; color: #b4700f; }
+
+/* 分栏标题的色标 */
+.sec-ico-paper { font-size: 16px; }
+.sec-ico-industry { font-size: 16px; }
+
+/* 归档列表页里的分栏小标题 */
+.news-subhead {
+  font-size: 13px; font-weight: 700; color: var(--text-dim);
+  margin: 12px 0 6px; display: flex; align-items: center; gap: 6px;
+}
+.news-subhead:first-child { margin-top: 0; }
+.news-subhead .tag { background: #f0f1f5; }

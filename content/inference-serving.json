@@ -1,7 +1,7 @@
 {
   "title": "推理引擎与服务框架",
   "summary": "推理优化的核心矛盾是「显存带宽」而非「算力」——decode 阶段是访存瓶颈。这也解释了为什么 continuous batching 和 PagedAttention 这两项技术能带来数量级提升。",
-  "updated_at": "2026-11-03",
+  "updated_at": "2026-11-06",
   "sections": [
     {
       "heading": "推理阶段的性能特征",

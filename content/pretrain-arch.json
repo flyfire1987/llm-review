@@ -1,7 +1,7 @@
 {
   "title": "预训练架构设计",
   "summary": "Decoder-only 是当前共识，但共识形成的过程有明确实证依据；归一化、位置编码、Attention 变体是真正影响细节的三个杠杆。",
-  "updated_at": "2026-11-05",
+  "updated_at": "2026-11-06",
   "sections": [
     {
       "heading": "架构选型：为什么是 Decoder-only",
@@ -24,15 +24,63 @@
     {
       "heading": "实验效果",
       "table": {
-        "headers": ["工作 / 组件", "对比基线", "数据集 / 规模", "关键结果", "出处"],
+        "headers": [
+          "工作 / 组件",
+          "对比基线",
+          "数据集 / 规模",
+          "关键结果",
+          "出处"
+        ],
         "rows": [
-          ["Decoder-only 架构选型", "Encoder-Decoder / Encoder-only", "约 1.5B 参数，多任务 zero-shot", "Decoder-only 在 zero-shot 迁移上整体占优", "arXiv 2010.11929"],
-          ["RMSNorm", "LayerNorm", "多种模型规模", "效果持平，计算量下降，效果等价", "arXiv 1910.01167"],
-          ["RoPE", "绝对位置编码 / ALiBi", "LLaMA 系列", "外推长度可通过位置插值扩展，效果更优", "arXiv 2104.09864"],
-          ["SwiGLU / GEGLU", "ReLU / GELU 前馈", "等参数量", "同等 loss 下收敛更快，主流模型全面采用", "arXiv 2002.05202"],
-          ["GQA", "MHA / MQA", "LLaMA-2 7B/13B/70B", "KV cache 显著减小，吞吐提升，质量基本无损", "arXiv 2305.13245"],
-          ["MLA", "GQA", "DeepSeek-V2", "KV cache 降低 93.3%，训练成本降至 1/3", "arXiv 2405.04434"],
-          ["Pre-LN vs Post-LN", "原版 Transformer", "深层 Transformer", "Pre-LN 深层训练更稳定，无需 warmup 精细调参", "arXiv 2002.04745"]
+          [
+            "Decoder-only 架构选型",
+            "Encoder-Decoder / Encoder-only",
+            "约 1.5B 参数，多任务 zero-shot",
+            "Decoder-only 在 zero-shot 迁移上整体占优",
+            "arXiv 2010.11929"
+          ],
+          [
+            "RMSNorm",
+            "LayerNorm",
+            "多种模型规模",
+            "效果持平，计算量下降，效果等价",
+            "arXiv 1910.01167"
+          ],
+          [
+            "RoPE",
+            "绝对位置编码 / ALiBi",
+            "LLaMA 系列",
+            "外推长度可通过位置插值扩展，效果更优",
+            "arXiv 2104.09864"
+          ],
+          [
+            "SwiGLU / GEGLU",
+            "ReLU / GELU 前馈",
+            "等参数量",
+            "同等 loss 下收敛更快，主流模型全面采用",
+            "arXiv 2002.05202"
+          ],
+          [
+            "GQA",
+            "MHA / MQA",
+            "LLaMA-2 7B/13B/70B",
+            "KV cache 显著减小，吞吐提升，质量基本无损",
+            "arXiv 2305.13245"
+          ],
+          [
+            "MLA",
+            "GQA",
+            "DeepSeek-V2",
+            "KV cache 降低 93.3%，训练成本降至 1/3",
+            "arXiv 2405.04434"
+          ],
+          [
+            "Pre-LN vs Post-LN",
+            "原版 Transformer",
+            "深层 Transformer",
+            "Pre-LN 深层训练更稳定，无需 warmup 精细调参",
+            "arXiv 2002.04745"
+          ]
         ],
         "caption": "注：MLA 的 KV cache 降幅为其论文中相对 GQA 的报告值，随序列长度与实现而变"
       }
@@ -41,13 +89,42 @@
       "heading": "适用边界",
       "body": "<ul><li><strong>ALiBi vs RoPE</strong>：需要超长上下文（千万 token 级）且接受表达力损失时 ALiBi 仍有竞争力；常规 4K–128K 场景 RoPE 全面占优</li><li><strong>MQA</strong>：在极小 batch 或长上下文生成场景下，MQA 的质量损失会被放大，优先选 GQA</li><li><strong>位置编码外推</strong>：RoPE 的长度外推必须配合插值方法（NTK/YaRN），直接外推会在长文本上彻底崩坏</li><li><strong>MoE 并非万能</strong>：训练需要更多显存用于专家并行与负载均衡，部署时推理成本优势也不如论文数字直观</li></ul>",
       "refs": [
-        {"title": "Exploring the Limits of Transfer Learning with a Unified Text-to-Text Transformer", "url": "https://arxiv.org/abs/2010.11929"},
-        {"title": "Root Mean Square Layer Normalization (RMSNorm)", "url": "https://arxiv.org/abs/1910.01167"},
-        {"title": "RoFormer: Enhanced Transformer with Rotary Position Embedding", "url": "https://arxiv.org/abs/2104.09864"},
-        {"title": "GLU Variants Improve Transformer", "url": "https://arxiv.org/abs/2002.05202"},
-        {"title": "GQA: Training Generalized Multi-Query Transformer Models", "url": "https://arxiv.org/abs/2305.13245"},
-        {"title": "DeepSeek-V2: A Strong, Economical, and Efficient Mixture-of-Experts Language Model", "url": "https://arxiv.org/abs/2405.04434"},
-        {"title": "On Layer Normalization in the Transformer Architecture (Pre-LN 分析)", "url": "https://arxiv.org/abs/2002.04745"}
+        {
+          "title": "Exploring the Limits of Transfer Learning with a Unified Text-to-Text Transformer",
+          "url": "https://arxiv.org/abs/2010.11929"
+        },
+        {
+          "title": "Root Mean Square Layer Normalization (RMSNorm)",
+          "url": "https://arxiv.org/abs/1910.01167"
+        },
+        {
+          "title": "RoFormer: Enhanced Transformer with Rotary Position Embedding",
+          "url": "https://arxiv.org/abs/2104.09864"
+        },
+        {
+          "title": "GLU Variants Improve Transformer",
+          "url": "https://arxiv.org/abs/2002.05202"
+        },
+        {
+          "title": "GQA: Training Generalized Multi-Query Transformer Models",
+          "url": "https://arxiv.org/abs/2305.13245"
+        },
+        {
+          "title": "DeepSeek-V2: A Strong, Economical, and Efficient Mixture-of-Experts Language Model",
+          "url": "https://arxiv.org/abs/2405.04434"
+        },
+        {
+          "title": "On Layer Normalization in the Transformer Architecture (Pre-LN 分析)",
+          "url": "https://arxiv.org/abs/2002.04745"
+        }
+      ]
+    },
+    {
+      "heading": "📌 最新进展",
+      "tldr": "自动同步的技术动态（每日 03:00 任务写入），随领域进展更新。",
+      "body": "<p>以下条目由每日同步任务自动追加，按时间倒序排列，<strong>原文链接</strong>可直达原论文/原文。</p>",
+      "points": [
+        "[2026-11-05] **信号有多深？初级保健EHR模型中结直肠癌预测的时间-Context长达30年**（arXiv）— EHR foundation models read medical events within a fixed context window, and long context has so far been measured only in tokens. How far back in time a model  原文：http://arxiv.org/abs/2611.07265"
       ]
     }
   ]

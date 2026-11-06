@@ -377,5 +377,131 @@
   "_merge_threshold": 2,
   "_merge_max_per_page": 8,
   "_daily_max": 10,
-  "_retention_days": 30
+  "_retention_days": 30,
+  "_keyword_fix_note": "2026-11-06: 补充通用 LLM 术语层。原先 256 个关键词全是长尾专业词（如 \"mixture of experts\"），导致 Hacker News / 36氪 这类口语化标题命中率为 0 —— 实测 70/70 条全部被 route_topics 丢弃。现加入 llm / gpt / claude / agent / inference 等通用词作为兜底路由。",
+  "_generic_keywords": {
+    "compare-models": [
+      "llm",
+      "large language model",
+      "gpt",
+      "chatgpt",
+      "claude",
+      "gemini",
+      "llama",
+      "qwen",
+      "deepseek",
+      "mistral",
+      "grok",
+      "openai",
+      "anthropic",
+      "deepmind",
+      "hugging face",
+      "foundation model"
+    ],
+    "posttrain-agentic": [
+      "ai agent",
+      "agentic",
+      "coding agent",
+      "mcp",
+      "tool calling"
+    ],
+    "inference-serving": [
+      "inference",
+      "llm serving",
+      "llm inference",
+      "inference cost",
+      "inference price",
+      "inference speed",
+      "throughput"
+    ],
+    "posttrain-eval": [
+      "benchmark",
+      "leaderboard",
+      "llm benchmark",
+      "eval",
+      "arena"
+    ],
+    "arch-multimodal": [
+      "vision model",
+      "image generation",
+      "video generation",
+      "speech model",
+      "text-to-speech",
+      "text to speech",
+      "multimodal ai"
+    ],
+    "posttrain-rl": [
+      "rlhf",
+      "reinforcement learning",
+      "preference optimization",
+      "rlvr"
+    ],
+    "posttrain-sft": [
+      "fine-tuning",
+      "finetuning",
+      "sft",
+      "instruction tuning",
+      "lora"
+    ],
+    "posttrain-preference": [
+      "alignment",
+      "dpo",
+      "rlhf",
+      "preference tuning"
+    ],
+    "arch-longctx": [
+      "long context",
+      "context window",
+      "context length"
+    ],
+    "inference-kvcache": [
+      "kv cache",
+      "context caching"
+    ],
+    "inference-quant": [
+      "quantization",
+      "quantized",
+      "fp8",
+      "int4",
+      "int8"
+    ],
+    "inference-speculative": [
+      "speculative decoding",
+      "speculative sampling"
+    ],
+    "arch-moe": [
+      "mixture of experts",
+      "moe",
+      "mixtral"
+    ],
+    "pretrain-scaling": [
+      "scaling law",
+      "training compute",
+      "pretraining compute"
+    ],
+    "pretrain-data": [
+      "pretraining data",
+      "training data",
+      "training corpus",
+      "data curation"
+    ],
+    "pretrain-arch": [
+      "transformer architecture",
+      "state space model",
+      "mamba"
+    ],
+    "pretrain-objective": [
+      "pretraining objective",
+      "next-token",
+      "language modeling objective"
+    ],
+    "pretrain-parallel": [
+      "distributed training",
+      "parallelism",
+      "training throughput"
+    ]
+  },
+  "_generic_keywords_note": "通用术语层，仅对新闻类来源（Hacker News / 36氪）生效。\n背景：原 256 个关键词全是长尾专业词（如 \"mixture of experts\"），\nHN/36氪 标题口语化，命中率为 0 —— 实测 70/70 条被 route_topics 全部丢弃。\n但通用词若对 arXiv 也生效，会把「评测类论文」误路由到 compare-models\n（实测 \"How Well Can LLMs Impersonate...\" 得分 8 全打在 compare-models）。\n故拆成独立层，route_topics 按 source 判断是否启用。",
+  "_daily_news_max": 6,
+  "_news_split_note": "2026-11-06: 每日动态分栏。原先所有来源（arXiv/HN/36氪/RSS）混在一起按分数抢 Top10，但 arXiv 有摘要(+1)+标题带数字(+1)+长专业词(2分)，天然占优 —— 实测新闻源最高仅 6 分、入选线 8 分，导致量子位/OpenAI/Google AI 等源全部零入选。故改为分栏：\n  - 论文动态（items）：arXiv 为主，最多 _daily_max 条\n  - 业界动态（news_items）：RSS/HN/36氪 等新闻源，最多 _daily_news_max 条\n两栏互不挤占，各自独立打分与去重。"
 }

@@ -1,7 +1,7 @@
 {
   "title": "并行策略与训练效率",
   "summary": "并行策略没有唯一最优解——选择取决于模型形状、集群规模和通信拓扑。DeepSpeed、Megatron、FSDP 是三大主流实现路线。",
-  "updated_at": "2026-11-05",
+  "updated_at": "2026-11-06",
   "sections": [
     {
       "heading": "五种并行维度",
@@ -107,6 +107,15 @@
           "title": "Training Deep Nets with Sublinear Memory Cost (gradient checkpointing)",
           "url": "https://arxiv.org/abs/2004.13337"
         }
+      ]
+    },
+    {
+      "heading": "📌 最新进展",
+      "tldr": "自动同步的技术动态（每日 03:00 任务写入），随领域进展更新。",
+      "body": "<p>以下条目由每日同步任务自动追加，按时间倒序排列，<strong>原文链接</strong>可直达原论文/原文。</p>",
+      "points": [
+        "[2026-11-05] **德语NLLB的数据集收集和微调--英语翻译**（arXiv）— This paper describes the curation of a high-quality parallel corpus from OPUS Books and the fine-tuning of Meta's NLLB-200 models for German--English translatio 原文：http://arxiv.org/abs/2611.07797",
+        "[2026-11-05] **KOSMOS ：用于通信-计算重叠的自调度持久内核**（arXiv）— Tensor and sequence parallelism (TP+SP) and expert parallelism (EP) put collectives on the critical path of transformer layers. State-of-the-art fused kernels m 原文：http://arxiv.org/abs/2611.07477"
       ]
     }
   ]

@@ -1,5 +1,7 @@
 {% extends 'base.html' %}
 {% set active_slug = 'news' %}
+{% set paper_items = day['items'] or [] %}
+{% set industry_items = day['news_items'] or [] %}
 {% block title %}{{ date_str }} 动态 · 大模型综述{% endblock %}
 
 {% block content %}
@@ -8,7 +10,9 @@
   <header class="page-head">
     <div class="head-left">
       <h1 class="page-title">📰 {{ date_str }}</h1>
-      <p class="page-summary">当日收录 {{ day['items'] | length }} 条大模型领域动态。</p>
+      <p class="page-summary">
+        当日收录论文 {{ paper_items | length }} 条、业界动态 {{ industry_items | length }} 条。
+      </p>
       <div class="page-meta">每日 03:00 自动同步 · 译文附原文链接</div>
     </div>
     <div class="head-right">
@@ -25,47 +29,108 @@
   </nav>
 
   <div class="doc">
-    {% if day['items'] %}
-      <div class="news-cards">
-        {% for it in day['items'] %}
-          <article class="news-card">
-            <div class="news-card-head">
-              <span class="news-no">#{{ loop.index }}</span>
-              <span class="tag tag-src">{{ it.source }}</span>
-              {% if it.merged_into %}
-                <span class="tag tag-merge">已合并进「{{ it.topics[0].title if it.topics else it.merged_into }}」</span>
-              {% endif %}
-            </div>
+    {% if paper_items or industry_items %}
 
-            <h3 class="news-card-title">
-              <a href="{{ it.url }}" target="_blank" rel="noopener">{{ it.title_zh }}</a>
-            </h3>
+      {% if paper_items %}
+        <section class="news-section news-section-paper">
+          <div class="news-section-head">
+            <h2 class="news-section-title"><span class="sec-ico-paper">📄</span> 论文动态</h2>
+            <span class="news-section-count">{{ paper_items | length }} 条</span>
+            <span class="news-section-hint">arXiv 收录 · 命中技术点会合并进模块页</span>
+          </div>
+          <div class="news-cards">
+            {% for it in paper_items %}
+              <article class="news-card">
+                <div class="news-card-head">
+                  <span class="news-no">#{{ loop.index }}</span>
+                  <span class="tag tag-src">{{ it.source }}</span>
+                  {% if it.merged_into %}
+                    <span class="tag tag-merge">已合并进「{{ it.topics[0].title if it.topics else it.merged_into }}」</span>
+                  {% endif %}
+                </div>
 
-            <div class="news-en">{{ it.title_en }}</div>
+                <h3 class="news-card-title">
+                  <a href="{{ it.url }}" target="_blank" rel="noopener">{{ it.title_zh }}</a>
+                </h3>
 
-            {% if it.note %}
-              <p class="news-note">{{ it.note }}</p>
-            {% endif %}
+                <div class="news-en">{{ it.title_en }}</div>
 
-            <div class="news-card-foot">
-              <a class="news-link" href="{{ it.url }}" target="_blank" rel="noopener">
-                阅读原文 →
-              </a>
-              {% if it.authors %}
-                <span class="news-authors">{{ it.authors | join(', ') }}</span>
-              {% endif %}
-            </div>
+                {% if it.note %}
+                  <p class="news-note">{{ it.note }}</p>
+                {% endif %}
 
-            {% if it.topics %}
-              <div class="news-meta">
-                {% for t in it.topics %}
-                  <span class="tag">{{ t.title }}</span>
-                {% endfor %}
-              </div>
-            {% endif %}
-          </article>
-        {% endfor %}
-      </div>
+                <div class="news-card-foot">
+                  <a class="news-link" href="{{ it.url }}" target="_blank" rel="noopener">
+                    阅读原文 →
+                  </a>
+                  {% if it.authors %}
+                    <span class="news-authors">{{ it.authors | join(', ') }}</span>
+                  {% endif %}
+                </div>
+
+                {% if it.topics %}
+                  <div class="news-meta">
+                    {% for t in it.topics %}
+                      <span class="tag">{{ t.title }}</span>
+                    {% endfor %}
+                  </div>
+                {% endif %}
+              </article>
+            {% endfor %}
+          </div>
+        </section>
+      {% endif %}
+
+      {% if industry_items %}
+        <section class="news-section news-section-industry">
+          <div class="news-section-head">
+            <h2 class="news-section-title"><span class="sec-ico-industry">📰</span> 业界动态</h2>
+            <span class="news-section-count">{{ industry_items | length }} 条</span>
+            <span class="news-section-hint">量子位 / 机器之心 / OpenAI / Google AI / HN / 36氪</span>
+          </div>
+          <div class="news-cards">
+            {% for it in industry_items %}
+              <article class="news-card">
+                <div class="news-card-head">
+                  <span class="news-no">#{{ loop.index }}</span>
+                  <span class="tag tag-src">{{ it.source }}</span>
+                  {% if it.merged_into %}
+                    <span class="tag tag-merge">已合并进「{{ it.topics[0].title if it.topics else it.merged_into }}」</span>
+                  {% endif %}
+                </div>
+
+                <h3 class="news-card-title">
+                  <a href="{{ it.url }}" target="_blank" rel="noopener">{{ it.title_zh }}</a>
+                </h3>
+
+                <div class="news-en">{{ it.title_en }}</div>
+
+                {% if it.note %}
+                  <p class="news-note">{{ it.note }}</p>
+                {% endif %}
+
+                <div class="news-card-foot">
+                  <a class="news-link" href="{{ it.url }}" target="_blank" rel="noopener">
+                    阅读原文 →
+                  </a>
+                  {% if it.authors %}
+                    <span class="news-authors">{{ it.authors | join(', ') }}</span>
+                  {% endif %}
+                </div>
+
+                {% if it.topics %}
+                  <div class="news-meta">
+                    {% for t in it.topics %}
+                      <span class="tag">{{ t.title }}</span>
+                    {% endfor %}
+                  </div>
+                {% endif %}
+              </article>
+            {% endfor %}
+          </div>
+        </section>
+      {% endif %}
+
     {% else %}
       <div class="empty-hint">当天没有收录内容。</div>
     {% endif %}

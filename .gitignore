@@ -17,3 +17,6 @@ data/seen.json
 .vscode/
 .idea/
 .DS_Store
+
+# 本地备份文件
+data/*.bak*

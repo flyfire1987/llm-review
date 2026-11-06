@@ -1,7 +1,7 @@
 {
   "title": "评测体系",
   "summary": "评测是整个后训练环节最容易被操纵的部分——污染、指标失真、judge 偏差是三个必须先解决的问题。",
-  "updated_at": "2026-11-04",
+  "updated_at": "2026-11-06",
   "sections": [
     {
       "heading": "评测的三层结构",
@@ -117,6 +117,8 @@
       "tldr": "自动同步的技术动态（每日 03:00 任务写入），随领域进展更新。",
       "body": "<p>以下条目由每日同步任务自动追加，按时间倒序排列，<strong>原文链接</strong>可直达原论文/原文。</p>",
       "points": [
+        "[2026-11-03] **AGORA ：通过项目响应理论对LLM评委进行可靠性感知聚合**（arXiv）— LLM-as-a-judge is a common substitute for costly human evaluation, and aggregating several judges is the standard remedy for any single judge's bias. Judge pool 原文：http://arxiv.org/abs/2611.05556",
+        "[2026-11-04] **通过软提示调整使LLM法官适应观察到的人体注释策略**（arXiv）— Large Language Models (LLMs) are increasingly employed as automated judges for evaluating chatbot responses. While proprietary models can achieve high agreement 原文：http://arxiv.org/abs/2611.07126",
         "[2026-11-04] **捣蛋：合成图像对多式联运医疗Reasoning的对抗性评估**（arXiv）— We used medical image synthesis to create a challenging multimodal evaluation framework that exposes hallucination behaviors in frontier models. Evaluating mult 原文：http://arxiv.org/abs/2611.06631",
         "[2026-11-04] **语言模型中汉字的语音学知识**（arXiv）— How much phonological knowledge do language models (LMs) possess about Chinese characters, and how is this knowledge represented and used? We introduce PinyinBe 原文：http://arxiv.org/abs/2611.05803",
         "[2026-11-04] **LLM服务引擎中配置和缓存体系结构的受控实验评估**（arXiv）— Multi-agent LLM applications repeat most of their prompt tokens across requests, and serving engines reuse the cached state of shared prefixes. vLLM and SGLang  原文：http://arxiv.org/abs/2611.05991"

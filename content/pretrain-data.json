@@ -115,11 +115,12 @@
       "tldr": "自动同步的技术动态（每日 03:00 任务写入），随领域进展更新。",
       "body": "<p>以下条目由每日同步任务自动追加，按时间倒序排列，<strong>原文链接</strong>可直达原论文/原文。</p>",
       "points": [
+        "[2026-11-05] **不同的身体，不同的技能？小语言模型的配对研究**（arXiv）— Small language models are often trained under tight data budgets, where the choice of pretraining corpus may matter as much as model size or training recipe. We 原文：http://arxiv.org/abs/2611.07812",
         "[2026-11-03] **SlackBench ：在基于真实代码库的协作项目上对Agents进行基准测试**（arXiv）— AI Agents are becoming digital coworkers that can browse the web, write code, run experiments, and assist humans over extended horizons. Yet existing benchmarks 原文：http://arxiv.org/abs/2611.05512"
       ]
     }
   ],
   "summary": "数据质量对模型能力的贡献远超参数量——这是整个训练链路里投入产出比最高、也最容易被忽视的一环。",
   "title": "预训练数据 Pipeline",
-  "updated_at": "2026-11-03"
+  "updated_at": "2026-11-06"
 }

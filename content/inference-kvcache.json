@@ -1,7 +1,7 @@
 {
   "title": "KV Cache 与内存优化",
   "summary": "KV cache 是推理阶段最主要的显存消耗项，也是长上下文场景下的硬约束——没有它，显存增速会比上下文长度更快地吃掉整卡。",
-  "updated_at": "2026-11-04",
+  "updated_at": "2026-11-06",
   "sections": [
     {
       "heading": "KV Cache 是什么、为什么必须存在",
@@ -120,6 +120,7 @@
       "tldr": "自动同步的技术动态（每日 03:00 任务写入），随领域进展更新。",
       "body": "<p>以下条目由每日同步任务自动追加，按时间倒序排列，<strong>原文链接</strong>可直达原论文/原文。</p>",
       "points": [
+        "[2026-11-04] **规则、跟踪和路由统计： ARC-AGI-2上开放模型的训练和校准数据**（arXiv）— We study which training and calibration data help three open models solve ARC-AGI-2 tasks when the solver runs offline on four L4 GPUs for at most 12 hours. We  原文：http://arxiv.org/abs/2611.06827",
         "[2026-11-04] **CRESiST ：用于同步语音翻译的自我增强探索性政策学习**（arXiv）— Simultaneous Speech Translation (SimulST) requires balancing translation quality and latency. While Large Language Models (LLMs) excel in offline translation, c 原文：http://arxiv.org/abs/2611.06501",
         "[2026-11-03] **超越压缩比：用于分解LLM服务的高通量KV压缩**（arXiv）— KV cache compression reduces the communication volume of disaggregated large language model serving, but its practical benefit depends not only on compression r 原文：http://arxiv.org/abs/2611.04382"
       ]

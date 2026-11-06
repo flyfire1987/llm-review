@@ -39,6 +39,19 @@ MAX_AGE_DAYS = 3
 
 UA = 'Mozilla/5.0 (compatible; llm-review-sync/1.0)'
 
+# RSS 源（中文 AI 媒体 / 官方博客）
+# 每项：(名称, feed_url, 是否中文)
+# 机器之心中文站官方 RSS 已失效（/rss 等路径均返回 404/HTML），
+# 故用其英文站 syncedreview.com 作为代替（内容同源）。
+RSS_SOURCES = [
+    ('量子位', 'https://www.qbitai.com/feed', True),
+    ('机器之心', 'https://syncedreview.com/feed/', False),
+    ('OpenAI', 'https://openai.com/news/rss.xml', False),
+    ('Google AI', 'https://blog.google/technology/ai/rss/', False),
+]
+RSS_MAX_ITEMS = 20         # 每个 RSS 源最多取多少条
+RSS_SOURCE_NAMES = {s[0] for s in RSS_SOURCES} | {'Hacker News', '36氪'}
+
 
 def _log(msg):
     print(f'[{datetime.now().strftime("%H:%M:%S")}] {msg}', flush=True)
@@ -200,11 +213,157 @@ def fetch_36kr(limit=40):
     return out
 
 
+# ── RSS 源 ────────────────────────────────────────────────────────────────
+
+def _strip_html(s):
+    """去 HTML 标签 + 解实体，压成纯文本"""
+    if not s:
+        return ''
+    s = re.sub(r'<!\[CDATA\[(.*?)\]\]>', r'\1', s, flags=re.S)
+    s = re.sub(r'<[^>]+>', ' ', s)
+    s = (s.replace('&nbsp;', ' ').replace('&amp;', '&')
+          .replace('&lt;', '<').replace('&gt;', '>')
+          .replace('&quot;', '"').replace('&#39;', "'")
+          .replace('&#8220;', '“').replace('&#8221;', '”'))
+    return re.sub(r'\s+', ' ', s).strip()
+
+
+def _rss_date(raw):
+    """把 RFC822 / ISO 日期转成 YYYY-MM-DD"""
+    if not raw:
+        return ''
+    raw = raw.strip()
+    for fmt in ('%a, %d %b %Y %H:%M:%S %z', '%a, %d %b %Y %H:%M:%S %Z',
+                '%Y-%m-%dT%H:%M:%S%z', '%Y-%m-%dT%H:%M:%SZ', '%Y-%m-%d'):
+        try:
+            return datetime.strptime(raw, fmt).date().isoformat()
+        except ValueError:
+            continue
+    m = re.search(r'(\d{4}-\d{2}-\d{2})', raw)
+    return m.group(1) if m else ''
+
+
+def fetch_rss_source(name, url, is_zh=False, limit=RSS_MAX_ITEMS, retries=2):
+    """抓一个 RSS/Atom 源，返回标准条目列表。
+
+    博客类站点（如 blog.google）SSL 握手偶发超时，重试可提高成功率。
+    """
+    raw = b''
+    last_err = None
+    for attempt in range(retries + 1):
+        try:
+            req = urllib.request.Request(url, headers={'User-Agent': UA})
+            with urllib.request.urlopen(req, timeout=30) as r:
+                raw = r.read()
+            break
+        except Exception as e:  # noqa: BLE001
+            last_err = e
+            if attempt < retries:
+                time.sleep(3)
+    if not raw:
+        _log(f'  ⚠️ {name} 抓取失败: {last_err}')
+        return []
+
+    try:
+        root = ET.fromstring(raw)
+    except ET.ParseError as e:
+        _log(f'  ⚠️ {name} XML 解析失败: {e}')
+        return []
+
+    ns = {'atom': 'http://www.w3.org/2005/Atom'}
+    nodes = root.findall('.//item')
+    if not nodes:
+        nodes = root.findall('.//atom:entry', ns)
+
+    out = []
+    for node in nodes[:limit]:
+        def _txt(tag, attr=None):
+            el = node.find(tag, ns)
+            if el is None:
+                el = node.find(f'atom:{tag}', ns)
+            if el is None:
+                return ''
+            if attr and el.get(attr):
+                return el.get(attr)
+            return (el.text or '')
+
+        title = _strip_html(_txt('title'))
+        if not title:
+            continue
+
+        link = _txt('link')
+        if not link:
+            for lk in node.findall('atom:link', ns):
+                if lk.get('rel') in (None, 'alternate'):
+                    link = lk.get('href') or ''
+                    break
+        if not link:
+            guid = _txt('guid')
+            link = guid if guid.startswith('http') else ''
+
+        summary = _strip_html(_txt('description') or _txt('summary'))
+        published = _rss_date(_txt('pubDate') or _txt('published') or _txt('updated'))
+
+        out.append({
+            'id': f"rss-{name}-{title_fingerprint(title)}",
+            'title': title,
+            'summary': summary[:600],
+            'authors': [],
+            'published': published,
+            'url': link.strip(),
+            'source': name,
+            'cat': 'rss',
+            'is_zh': is_zh,
+        })
+
+    _log(f'  ✓ {name}: 抓到 {len(out)} 条')
+    return out
+
+
+def fetch_all_rss():
+    """抓取所有 RSS 源"""
+    out = []
+    for name, url, is_zh in RSS_SOURCES:
+        out.extend(fetch_rss_source(name, url, is_zh))
+    return out
+
+
 # ── 主题路由 ──────────────────────────────────────────────────────────────
 
+# 短裸词（无空格/无连字符且很短）匹配时加词边界，
+# 否则会误命中无关单词：
+#   'agent' → "60k former agents" / "Multi-Agent System"
+#   'ppo'   → "Motorola Signature 27 with GrapheneOS support"（support 含 ppo）
+#   'bit'   → 任意含 "bit" 的词
+_BARE_WORD_RE = re.compile(r'^[a-z0-9]{2,6}$')
+_word_boundary_cache = {}
+
+
+def _kw_match(kw_l, text):
+    """关键词匹配：短裸词走词边界，其余走子串。"""
+    if _BARE_WORD_RE.match(kw_l):
+        pat = _word_boundary_cache.get(kw_l)
+        if pat is None:
+            pat = re.compile(r'(?<![a-z0-9])' + re.escape(kw_l) + r'(?![a-z0-9])')
+            _word_boundary_cache[kw_l] = pat
+        return bool(pat.search(text))
+    return kw_l in text
+
+
 def route_topics(item, topics):
-    """给一条内容打分，返回 [(slug, score)] 倒序"""
+    """给一条内容打分，返回 [(slug, score)] 倒序。
+
+    两类关键词分层处理：
+      - 专业关键词（topics.json 原有）：对所有来源生效
+      - 通用关键词（topics.json 的 _generic_keywords）：仅对新闻类来源生效
+        （Hacker News / 36氪 / RSS 源）。arXiv 论文标题规范、术语准确，
+        套通用词会把「评测类论文」误路由到 compare-models。
+    """
     text = f"{item.get('title', '')} {item.get('summary', '')}".lower()
+    source = item.get('source', '')
+    is_news = source in RSS_SOURCE_NAMES
+    generic = topics.get('_generic_keywords', {}) if is_news else {}
+
     hits = []
     for slug, cfg in topics.items():
         if slug.startswith('_'):
@@ -212,9 +371,13 @@ def route_topics(item, topics):
         score = 0
         for kw in cfg.get('keywords', []):
             kw_l = kw.lower()
-            if kw_l in text:
+            if _kw_match(kw_l, text):
                 # 长关键词权重更高
                 score += 2 if len(kw_l) > 12 else 1
+        # 通用词只给新闻源用，且权重低（避免压过专业匹配）
+        for kw in generic.get(slug, []):
+            if kw.lower() in text:
+                score += 1
         if score:
             hits.append((slug, score))
     hits.sort(key=lambda x: -x[1])
@@ -382,11 +545,13 @@ def collect():
     items.extend(fetch_hackernews())
     _log('抓取 36氪...')
     items.extend(fetch_36kr())
+    _log('抓取 RSS 源（量子位 / 机器之心 / OpenAI / Google AI）...')
+    items.extend(fetch_all_rss())
     return items
 
 
-def score_and_pick(items, topics, seen, daily_max):
-    """打分 + 去重 + 选出每日 N 条
+def score_and_pick(items, topics, seen, daily_max, news_max=0):
+    """打分 + 去重 + 选出每日 N 条（分两栏）
 
     打分规则（越高越优先）：
       + 命中技术点关键词：每个关键词 1 分（长词 2 分）
@@ -397,6 +562,14 @@ def score_and_pick(items, topics, seen, daily_max):
     硬性门槛：必须至少命中 1 个技术点关键词。
       否则宁可不收 —— 与综述无关的论文（如 ASR、CV、数据集论文）
       哪怕标题里有数字，也不该占用每日 10 条的名额。
+
+    分栏（2026-11-06）：
+      论文栏 = arXiv 来源，最多 daily_max 条
+      业界栏 = 其余新闻源（RSS/HN/36氪），最多 news_max 条
+      两栏独立打分、独立去重，互不挤占名额。
+      原因：arXiv 天然占优（有摘要+标题带数字+长专业词），
+      混排时新闻源最高仅 6 分而入选线 8 分，实测量子位/OpenAI/
+      Google AI 全部零入选。
     """
     scored = []
     in_run_keys = set()   # 本次运行内已选中的条目（arXiv 多分类会重复收录同一篇）
@@ -431,7 +604,18 @@ def score_and_pick(items, topics, seen, daily_max):
 
     scored.sort(key=lambda x: -x['_score'])
     _log(f'  候选 {len(scored)} 条（已过滤未命中任何技术点的内容），按分数排序')
-    return scored[:daily_max]
+
+    papers = [s for s in scored if s.get('source') == 'arXiv']
+    industry = [s for s in scored if s.get('source') != 'arXiv']
+
+    # 两栏互不重复：业界栏排除已被论文栏占用的 key/fp
+    paper_keys = {s['_key'] for s in papers[:daily_max]}
+    paper_fps = {s['_fp'] for s in papers[:daily_max]}
+    industry = [s for s in industry
+                if s['_key'] not in paper_keys and s['_fp'] not in paper_fps]
+
+    _log(f'  论文栏 {len(papers[:daily_max])} 条 / 业界栏 {len(industry[:news_max])} 条')
+    return papers[:daily_max], industry[:news_max]
 
 
 def build_entry(item, topics):
@@ -460,6 +644,8 @@ def build_entry(item, topics):
         'note': note,
         'topics': merged[:3],
         'merged_into': primary,
+        # 收录日（论文发表日 date 可能是几天前）
+        'collected_at': date.today().isoformat(),
     }
 
 
@@ -469,15 +655,18 @@ def main():
     ap.add_argument('--dry-run', action='store_true', help='只抓取和打分，不写文件')
     ap.add_argument('--limit', type=int, default=None, help='每日条数上限')
     ap.add_argument('--date', default=None, help='归档日期 YYYY-MM-DD（默认今天）')
+    ap.add_argument('--news-limit', type=int, default=None, help='业界动态条数上限')
     args = ap.parse_args()
 
     topics = load_topic_map()
-    daily_max = args.limit or load_topics().get('_daily_max', 10)
+    cfg = load_topics()
+    daily_max = args.limit or cfg.get('_daily_max', 10)
+    news_max = args.news_limit if args.news_limit is not None else cfg.get('_daily_news_max', 6)
     merge_threshold = topics.get('_merge_threshold', 2)
     retention = topics.get('_retention_days', 30)
 
     target_date = args.date or date.today().isoformat()
-    _log(f'=== 大模型动态同步 · {target_date} · 上限 {daily_max} 条 ===')
+    _log(f'=== 大模型动态同步 · {target_date} · 论文 {daily_max} 条 / 业界 {news_max} 条 ===')
 
     _log('① 抓取数据源')
     items = collect()
@@ -487,11 +676,12 @@ def main():
 
     _log('② 打分与去重')
     seen = store.load_seen()
-    picked = score_and_pick(items, topics, seen, daily_max)
+    papers, industry = score_and_pick(items, topics, seen, daily_max, news_max)
+    picked = papers + industry
     if not picked:
         _log('ℹ️ 没有新的内容（可能全部已收录）')
         return 0
-    _log(f'  选中 {len(picked)} 条：')
+    _log(f'  选中 {len(picked)} 条（论文 {len(papers)} / 业界 {len(industry)}）：')
     for p in picked:
         top = p['_hits'][0][0] if p['_hits'] else '-'
         _log(f'    [{p["_score"]:>2}] {p["title"][:60]}  → {top}')
@@ -514,10 +704,19 @@ def main():
 
     _log('④ 写入每日动态')
     existing = store.load_news(target_date) or {'date': target_date, 'items': []}
-    existing['items'] = entries + existing.get('items', [])
+    # 分栏存储：items = 论文栏，news_items = 业界栏
+    # entries 是按 papers + industry 顺序构建的，直接按位置切分。
+    # （不能用 URL 匹配 —— 同一条内容可能被两栏共用，或 URL 重复）
+    n_paper = len(papers)
+    paper_entries = entries[:n_paper]
+    news_entries = entries[n_paper:]
+
+    existing['items'] = paper_entries + existing.get('items', [])
+    existing['news_items'] = news_entries + existing.get('news_items', [])
     existing['updated_at'] = datetime.now().isoformat(timespec='seconds')
     store.save_news(target_date, existing)
-    _log(f'  ✓ content/news/{target_date}.json （{len(existing["items"])} 条）')
+    _log(f'  ✓ content/news/{target_date}.json '
+         f'（论文 {len(existing["items"])} 条 / 业界 {len(existing["news_items"])} 条）')
 
     _log('⑤ 合并进对应技术点页')
     merged_count = 0
@@ -531,6 +730,7 @@ def main():
             'url': e['url'],
             'source': e['source'],
             'date': e['date'],
+            'collected_at': e.get('collected_at') or target_date,
             'note': e['note'][:160],
         })
         if ok:
