@@ -131,7 +131,7 @@
         {% if sec.summary %}<div class="stage-summary">{{ sec.summary }}</div>{% endif %}
         <div class="stage-links">
           {% for item in sec.children or [] %}
-            <a class="stage-link" href="{{ script_name }}/page/{{ item.slug }}">
+            <a class="stage-link" href="{% if item.kind == 'news' %}{{ script_name }}/news{% else %}{{ script_name }}/page/{{ item.slug }}{% endif %}">
               {{ item.title }}
             </a>
           {% endfor %}

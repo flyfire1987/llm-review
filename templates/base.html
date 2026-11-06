@@ -34,14 +34,14 @@
             </div>
             {% for item in sec.children %}
               <a class="menu-item depth-1 {% if item.slug == active_slug %}active{% endif %}"
-                 href="{{ script_name }}/page/{{ item.slug }}"
+                 href="{% if item.kind == 'news' %}{{ script_name }}/news{% else %}{{ script_name }}/page/{{ item.slug }}{% endif %}"
                  {% if item.slug == active_slug %}data-current="1"{% endif %}>
                 <span class="dot"></span>{{ item.title }}
               </a>
               {% if item.children %}
                 {% for sub in item.children %}
                   <a class="menu-item depth-2 {% if sub.slug == active_slug %}active{% endif %}"
-                     href="{{ script_name }}/page/{{ sub.slug }}"
+                     href="{% if sub.kind == 'news' %}{{ script_name }}/news{% else %}{{ script_name }}/page/{{ sub.slug }}{% endif %}"
                      {% if sub.slug == active_slug %}data-current="1"{% endif %}>
                     <span class="dot"></span>{{ sub.title }}
                   </a>
@@ -50,7 +50,7 @@
             {% endfor %}
           {% else %}
             <a class="menu-item depth-1 {% if sec.slug == active_slug %}active{% endif %}"
-               href="{{ script_name }}/page/{{ sec.slug }}"
+               href="{% if sec.kind == 'news' %}{{ script_name }}/news{% else %}{{ script_name }}/page/{{ sec.slug }}{% endif %}"
                {% if sec.slug == active_slug %}data-current="1"{% endif %}>
               <span class="dot"></span>{{ sec.title }}
             </a>
