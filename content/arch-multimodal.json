@@ -123,6 +123,7 @@
       "tldr": "自动同步的技术动态（每日 03:00 任务写入），随领域进展更新。",
       "body": "<p>以下条目由每日同步任务自动追加，按时间倒序排列，<strong>原文链接</strong>可直达原论文/原文。</p>",
       "points": [
+        "[2026-11-04] **《Grounding in the Dark: Text-Only Training for Zero-Shot Video Temporal Localization》**（arXiv）— Video-LLMs are typically trained on paired video-text data for temporal tasks, yet collecting precise temporal annotations and training on large-scale video dat 原文：http://arxiv.org/abs/2611.06149",
         "[2026-11-04] **NTCIR-19 SciClaimEval任务概述：科学论文中的跨模式索赔验证**（arXiv）— This paper presents an overview of \\emph{SciClaimEval}, a pilot task at NTCIR-19 on verifying scientific claims against the tables and figures of the papers in  原文：http://arxiv.org/abs/2611.06090",
         "[2026-11-04] **ModalSearcher ：将视觉证据编织到自主跨模态深度搜索中**（arXiv）— Static and incomplete parametric knowledge limits the performance of multimodal large language models on novel-knowledge and knowledge-intensive tasks, especial 原文：http://arxiv.org/abs/2611.06131"
       ]

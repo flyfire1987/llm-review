@@ -1,7 +1,7 @@
 {
   "title": "推理引擎与服务框架",
   "summary": "推理优化的核心矛盾是「显存带宽」而非「算力」——decode 阶段是访存瓶颈。这也解释了为什么 continuous batching 和 PagedAttention 这两项技术能带来数量级提升。",
-  "updated_at": "2026-11-02",
+  "updated_at": "2026-11-03",
   "sections": [
     {
       "heading": "推理阶段的性能特征",
@@ -109,6 +109,8 @@
       "tldr": "自动同步的技术动态（每日 03:00 任务写入），随领域进展更新。",
       "body": "<p>以下条目由每日同步任务自动追加，按时间倒序排列，<strong>原文链接</strong>可直达原论文/原文。</p>",
       "points": [
+        "[2026-11-03] **LeanSparse ： Native Sparse-Attention LLMs的高内存效率服务**（arXiv）— Sparse attention limits the history read by each query, but serving long contexts still requires substantial GPU memory. Existing KV offloading systems retain t 原文：http://arxiv.org/abs/2611.04671",
+        "[2026-11-04] **SafeStart ：缓解MoE LLM服务中主动减少专家的安全成本**（arXiv）— Mixture-of-Experts (MoE) language models send each token through a few of many expert subnetworks. Serving methods make these models faster by running even fewe 原文：http://arxiv.org/abs/2611.06147",
         "[2026-11-02] **ROCm InferaSim ：削减LLM服务试用成本并部署最佳配置**（arXiv）— Serving an LLM efficiently depends on the engine, how the model is split across GPUs, precision, scheduler settings, speculative decoding, KV-cache management,  原文：http://arxiv.org/abs/2611.04032",
         "[2026-11-04] **ServerBench ：您的编码代理如何设计专门的LLM服务系统？**（arXiv）— Large language model (LLM) coding agents develop software through experimentation, offering an opportunity to design the serving systems supporting their own op 原文：http://arxiv.org/abs/2611.06841"
       ]

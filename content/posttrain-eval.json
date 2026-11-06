@@ -117,6 +117,7 @@
       "tldr": "自动同步的技术动态（每日 03:00 任务写入），随领域进展更新。",
       "body": "<p>以下条目由每日同步任务自动追加，按时间倒序排列，<strong>原文链接</strong>可直达原论文/原文。</p>",
       "points": [
+        "[2026-11-04] **捣蛋：合成图像对多式联运医疗Reasoning的对抗性评估**（arXiv）— We used medical image synthesis to create a challenging multimodal evaluation framework that exposes hallucination behaviors in frontier models. Evaluating mult 原文：http://arxiv.org/abs/2611.06631",
         "[2026-11-04] **语言模型中汉字的语音学知识**（arXiv）— How much phonological knowledge do language models (LMs) possess about Chinese characters, and how is this knowledge represented and used? We introduce PinyinBe 原文：http://arxiv.org/abs/2611.05803",
         "[2026-11-04] **LLM服务引擎中配置和缓存体系结构的受控实验评估**（arXiv）— Multi-agent LLM applications repeat most of their prompt tokens across requests, and serving engines reuse the cached state of shared prefixes. vLLM and SGLang  原文：http://arxiv.org/abs/2611.05991"
       ]

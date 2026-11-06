@@ -1,7 +1,7 @@
 {
   "title": "Agent 与工具调用训练",
   "summary": "工具调用训练的核心不是让模型「会写函数签名」，而是让模型学会在多轮交互中根据环境反馈修正自己的行动——这是长程信用分配问题。",
-  "updated_at": "2026-11-05",
+  "updated_at": "2026-11-04",
   "sections": [
     {
       "heading": "从 QA 到 Agent",
@@ -23,15 +23,63 @@
     {
       "heading": "实验效果",
       "table": {
-        "headers": ["工作", "任务 / 环境", "对比基线", "关键结果", "出处"],
+        "headers": [
+          "工作",
+          "任务 / 环境",
+          "对比基线",
+          "关键结果",
+          "出处"
+        ],
         "rows": [
-          ["ReAct", "HotpotQA / FEVER", "Act-only、CoT", "推理与行动交错显著优于两者单独使用", "arXiv 2210.03629"],
-          ["Toolformer", "API 调用", "无工具模型", "自监督方式获得工具调用能力，多数基准有提升", "arXiv 2302.04761"],
-          ["AgentInstruct", "Agent 轨迹", "—", "提供大规模多步轨迹微调数据，显著提升工具使用", "arXiv 2404.08634"],
-          ["WebArena", "真实网页任务", "人类 78.24%", "最佳 GPT-4 驱动 Agent 约 14.41% 成功率", "arXiv 2307.13854"],
-          ["SWE-bench", "真实 GitHub issue", "—", "初期 GPT-4 仅约 1.96%，后续模型大幅提升", "arXiv 2310.06770"],
-          ["τ-bench", "工具调用 + 规则约束", "—", "揭示了 Agent 在多轮工具使用中的可靠性问题", "arXiv 2406.12045"],
-          ["Agentic RL (rStar / SWE agents)", "代码与搜索任务", "纯 SFT", "多轮 RL 带来超过单纯 SFT 的提升", "arXiv 2408.06364 等"]
+          [
+            "ReAct",
+            "HotpotQA / FEVER",
+            "Act-only、CoT",
+            "推理与行动交错显著优于两者单独使用",
+            "arXiv 2210.03629"
+          ],
+          [
+            "Toolformer",
+            "API 调用",
+            "无工具模型",
+            "自监督方式获得工具调用能力，多数基准有提升",
+            "arXiv 2302.04761"
+          ],
+          [
+            "AgentInstruct",
+            "Agent 轨迹",
+            "—",
+            "提供大规模多步轨迹微调数据，显著提升工具使用",
+            "arXiv 2404.08634"
+          ],
+          [
+            "WebArena",
+            "真实网页任务",
+            "人类 78.24%",
+            "最佳 GPT-4 驱动 Agent 约 14.41% 成功率",
+            "arXiv 2307.13854"
+          ],
+          [
+            "SWE-bench",
+            "真实 GitHub issue",
+            "—",
+            "初期 GPT-4 仅约 1.96%，后续模型大幅提升",
+            "arXiv 2310.06770"
+          ],
+          [
+            "τ-bench",
+            "工具调用 + 规则约束",
+            "—",
+            "揭示了 Agent 在多轮工具使用中的可靠性问题",
+            "arXiv 2406.12045"
+          ],
+          [
+            "Agentic RL (rStar / SWE agents)",
+            "代码与搜索任务",
+            "纯 SFT",
+            "多轮 RL 带来超过单纯 SFT 的提升",
+            "arXiv 2408.06364 等"
+          ]
         ],
         "caption": "注：SWE-bench 上不同版本（完整 / Lite / Verified）分数不可直接比较"
       }
@@ -40,12 +88,39 @@
       "heading": "适用边界",
       "body": "<ul><li><strong>Agent 任务成功率仍远低于人类</strong>：WebArena 上人类 78% vs 最佳 Agent 14%（2023 年数据，近年已有大幅提升但差距仍存），不要按「接近可用」来规划</li><li><strong>成本是硬约束</strong>：多轮 rollout 的 token 消耗是单轮的 10–100 倍</li><li><strong>工具数量与准确率负相关</strong>：工具越多，模型选错概率越高</li><li><strong>RL 在 Agent 上比在 QA 上更难</strong>：环境不可控、奖励稀疏、失败代价高</li><li><strong>安全风险更高</strong>：Agent 有副作用（发邮件、删文件、花钱），上线必须有沙箱与权限隔离，不能只靠 prompt 约束</li><li><strong>多智能体不是银弹</strong>：通信开销与误差累积常常抵消分工收益</li></ul>",
       "refs": [
-        {"title": "ReAct: Synergizing Reasoning and Acting in Language Models", "url": "https://arxiv.org/abs/2210.03629"},
-        {"title": "Toolformer: Language Models Can Teach Themselves to Use Tools", "url": "https://arxiv.org/abs/2302.04761"},
-        {"title": "AgentInstruct: Toward Generative Teaching with Agentic Paths", "url": "https://arxiv.org/abs/2404.08634"},
-        {"title": "WebArena: A Realistic Web Environment for Building Autonomous Agents", "url": "https://arxiv.org/abs/2307.13854"},
-        {"title": "SWE-bench: Can Language Models Resolve Real-World GitHub Issues?", "url": "https://arxiv.org/abs/2310.06770"},
-        {"title": "τ-bench: A Benchmark for Tool-Agent-User Interaction in Real-World Domains", "url": "https://arxiv.org/abs/2406.12045"}
+        {
+          "title": "ReAct: Synergizing Reasoning and Acting in Language Models",
+          "url": "https://arxiv.org/abs/2210.03629"
+        },
+        {
+          "title": "Toolformer: Language Models Can Teach Themselves to Use Tools",
+          "url": "https://arxiv.org/abs/2302.04761"
+        },
+        {
+          "title": "AgentInstruct: Toward Generative Teaching with Agentic Paths",
+          "url": "https://arxiv.org/abs/2404.08634"
+        },
+        {
+          "title": "WebArena: A Realistic Web Environment for Building Autonomous Agents",
+          "url": "https://arxiv.org/abs/2307.13854"
+        },
+        {
+          "title": "SWE-bench: Can Language Models Resolve Real-World GitHub Issues?",
+          "url": "https://arxiv.org/abs/2310.06770"
+        },
+        {
+          "title": "τ-bench: A Benchmark for Tool-Agent-User Interaction in Real-World Domains",
+          "url": "https://arxiv.org/abs/2406.12045"
+        }
+      ]
+    },
+    {
+      "heading": "📌 最新进展",
+      "tldr": "自动同步的技术动态（每日 03:00 任务写入），随领域进展更新。",
+      "body": "<p>以下条目由每日同步任务自动追加，按时间倒序排列，<strong>原文链接</strong>可直达原论文/原文。</p>",
+      "points": [
+        "[2026-11-04] **在LLM Agents中，多圈强化学习真正有哪些改进？**（arXiv）— While multi-turn agentic reinforcement learning (RL) excels on long-horizon tasks, its performance gains remain highly sensitive to interaction constraints. Eva 原文：http://arxiv.org/abs/2611.06483",
+        "[2026-11-04] **浅编码散发深刻记忆**（arXiv）— Hybrid language models interleave a few softmax-attention layers with many linear-attention or state-space layers, so every layer keeps a memory of earlier toke 原文：http://arxiv.org/abs/2611.06084"
       ]
     }
   ]

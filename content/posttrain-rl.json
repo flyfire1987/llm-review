@@ -119,6 +119,7 @@
       "tldr": "自动同步的技术动态（每日 03:00 任务写入），随领域进展更新。",
       "body": "<p>以下条目由每日同步任务自动追加，按时间倒序排列，<strong>原文链接</strong>可直达原论文/原文。</p>",
       "points": [
+        "[2026-11-04] **两次使用体验：特权Token级学分分配的动态流程评分细则表**（arXiv）— Agent trajectories often contain both successful decisions and failed attempts, yet optimization with sparse trajectory-level rewards struggles to identify whic 原文：http://arxiv.org/abs/2611.06543",
         "[2026-11-04] **RAGAM-AI ：基于生成式AI的混合强化学习Agentic边缘资源管理方法**（arXiv）— Resource management for distributed edge networks hosting different services has been handled efficiently using Reinforcement learning (RL). Reward generalizati 原文：http://arxiv.org/abs/2611.06554",
         "[2026-11-04] **批量生产具有令人惊讶的副作用的培训数据**（arXiv）— Training data can have unexpected side effects on language model behavior outside the training domain: insecure code data can induce broad misalignment, and out 原文：http://arxiv.org/abs/2611.06324",
         "[2026-11-04] **Turns Matter ：通过Turn-Level Credit推进流媒体视频RL**（arXiv）— Streaming video understanding requires models to repeatedly decide whether to respond or continue observing. Recently, Group Relative Policy Optimization (GRPO) 原文：http://arxiv.org/abs/2611.06728",
