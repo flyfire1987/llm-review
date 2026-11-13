@@ -1,7 +1,7 @@
 {
   "title": "主流模型参数对比",
   "summary": "一张表看清主流模型的规模、上下文、架构与许可证——参数不再是主要区分维度，许可证和部署成本往往更关键。",
-  "updated_at": "2026-11-06",
+  "updated_at": "2026-11-12",
   "sections": [
     {
       "heading": "怎么看这张表",
@@ -193,6 +193,8 @@
       "tldr": "自动同步的技术动态（每日 03:00 任务写入），随领域进展更新。",
       "body": "<p>以下条目由每日同步任务自动追加，按时间倒序排列，<strong>原文链接</strong>可直达原论文/原文。</p>",
       "points": [
+        "[2026-11-11] **Gemini Decisions API：快速、经过校准的多模态决策**（Google AI）— 认识一下由我们最先进的模型Gemini Decision提供支持的Gemini Decisions API，它可以快速做出经过校准的多模态决策。 原文：https://blog.google/innovation-and-ai/technology/developers-tools/gemini-decisions-api/",
+        "[2026-11-10] **Pyrite：构建和基准测试蛋白质-配体构象排名 Agents**（arXiv）— 预测配体如何与其靶标结合是小分子药物发现的核心。现代协同折叠模型可以生成多种候选构象，但如何可靠地对这些候选构象进行排序仍然是一项挑战。我们推出了Pyrite，这是一个成对构象排序基准，包含1500对来自各种蛋白质-配体复合物的构象对。 配备3D可视化工具和基于物理学的评分的专业化学家在执行近乎随机的任务时，其表现突出 原文：http://arxiv.org/abs/2611.14511",
         "[2026-10-13] **Gemini 4 Argon ：专为解决您最棘手的问题而设计**（Google AI）— 我们为开发人员、企业、科学家和消费者提供最新的前沿模型Gemini 4 Argon。 原文：https://blog.google/innovation-and-ai/models-and-research/gemini-models/introducing-gemini-4-argon/",
         "[2026-11-04] **将整数网格转换为空间直觉：感知，而不是规划，管理ARC-AGI-3**（arXiv）— Sample-efficient fluid intelligence requires agents that rapidly form working models of unfamiliar interactive environments. ARC-AGI-3 tests this across uninstr 原文：http://arxiv.org/abs/2611.06793"
       ]

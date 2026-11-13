@@ -1,7 +1,7 @@
 {
   "title": "推理引擎与服务框架",
   "summary": "推理优化的核心矛盾是「显存带宽」而非「算力」——decode 阶段是访存瓶颈。这也解释了为什么 continuous batching 和 PagedAttention 这两项技术能带来数量级提升。",
-  "updated_at": "2026-11-06",
+  "updated_at": "2026-11-13",
   "sections": [
     {
       "heading": "推理阶段的性能特征",
@@ -109,6 +109,9 @@
       "tldr": "自动同步的技术动态（每日 03:00 任务写入），随领域进展更新。",
       "body": "<p>以下条目由每日同步任务自动追加，按时间倒序排列，<strong>原文链接</strong>可直达原论文/原文。</p>",
       "points": [
+        "[2026-11-10] **超出自身承受能力的突发：前缀缓存 Agent 服务中的持续降级**（arXiv）— LLM 代理通过闭环会话驱动推理引擎，这些会话的上下文在每次迭代中都会增长，而经济高效地提供这些会话的服务则有赖于前缀缓存：命中时需要进行约 1000 个token的增量预填充，未命中时则需要重新计算 10--40K 个token的上下文。我们表明，这使得前缀缓存的代理服务处于亚稳态。 在基本工作负载相同的情况下，多出 原文：http://arxiv.org/abs/2611.13412",
+        "[2026-11-10] **移动端 AI 工厂：为您的移动设备构建专用语言模型**（arXiv）— 在移动设备上运行的小型语言模型（SLM）可以保护用户数据的隐私，并且无需联网即可工作。但只有针对目标任务进行微调并针对目标设备进行规模调整，它们才能表现出色，而这一过程在当今需要专家反复进行调优。我们推出了{\\it Mobile AI Factory}，这是一个代理系统，可为特定任务和手机构建经过微调的量化 SLM。  原文：http://arxiv.org/abs/2611.13509",
+        "[2026-11-09] **不断发展的基础设施： Agent-Adaptive LLM大规模服务**（arXiv）— Agentic工作负载是LLM推理需求的主要来源。现有的预填充-解码（ PD ）分解服务系统为计算分配和KV缓存管理的运行时适应提供了有限的灵活性，并且依赖于仅部分捕获多样化和动态代理工作负载的粗略信号。这些限制导致预填充和解码节点之间的负载不平衡，并驱逐代理将重复使用的KV缓存。 我们介绍Evolving Infra 原文：http://arxiv.org/abs/2611.12304",
         "[2026-11-03] **LeanSparse ： Native Sparse-Attention LLMs的高内存效率服务**（arXiv）— Sparse attention limits the history read by each query, but serving long contexts still requires substantial GPU memory. Existing KV offloading systems retain t 原文：http://arxiv.org/abs/2611.04671",
         "[2026-11-04] **SafeStart ：缓解MoE LLM服务中主动减少专家的安全成本**（arXiv）— Mixture-of-Experts (MoE) language models send each token through a few of many expert subnetworks. Serving methods make these models faster by running even fewe 原文：http://arxiv.org/abs/2611.06147",
         "[2026-11-02] **ROCm InferaSim ：削减LLM服务试用成本并部署最佳配置**（arXiv）— Serving an LLM efficiently depends on the engine, how the model is split across GPUs, precision, scheduler settings, speculative decoding, KV-cache management,  原文：http://arxiv.org/abs/2611.04032",

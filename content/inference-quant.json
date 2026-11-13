@@ -1,7 +1,7 @@
 {
   "title": "量化与算子优化",
   "summary": "量化是推理降本的最直接手段——INT8/FP8 几乎无损，INT4 需要注意量化粒度与 outlier 处理，选错方案掉点会很明显。",
-  "updated_at": "2026-11-06",
+  "updated_at": "2026-11-11",
   "sections": [
     {
       "heading": "量化基础",
@@ -124,6 +124,8 @@
       "tldr": "自动同步的技术动态（每日 03:00 任务写入），随领域进展更新。",
       "body": "<p>以下条目由每日同步任务自动追加，按时间倒序排列，<strong>原文链接</strong>可直达原论文/原文。</p>",
       "points": [
+        "[2026-11-09] **二阶线性响应预测量化不匹配的程度如何？五种语言模型的预注册测量**（arXiv）— 服务系统为每个模型和部署选择一种权重格式。低成本屏幕使用$\\ tfrac12Δ ^\\ top FΔ $ ，即Hessian感知和二阶训练后量化器的扩展，预测未量化模型的Fisher信息由此产生的KL发散。 我们使用Qwen3-8B、Qwen3-4B、OLMo-2-7B、Qwen3-32B和Qwen3-30B-A3B上的 原文：http://arxiv.org/abs/2611.12634",
+        "[2026-11-05] **ProQuant: Progressive Quantization-aware Training for Edge MLLMs**（arXiv）— Multi-modal large language models (MLLMs) with impressive perception and understanding capabilities will enable a range of downstream applications. However, the 原文：http://arxiv.org/abs/2611.08216",
         "[2026-11-05] **StrataFlux ：内存层次结构-本机低位LLM推理**（arXiv）— Quantization reduces the memory and bandwidth demands of large language model (LLM) inference but can degrade accuracy; offloading higher-precision data can ins 原文：http://arxiv.org/abs/2611.08363",
         "[2026-11-05] **ZYFA ： FP8 FlashAttention在AMD CDNA4上的速度和准确度**（arXiv）— Attention is a core building block of frontier models and often dominates compute-bound prefill at long context. FP8 matrix instructions offer twice the peak th 原文：http://arxiv.org/abs/2611.07496",
         "[2026-11-05] **TriAttention ：用于Long-Context LLM推理的统一稀疏混合精度Attention**（arXiv）— Sparsity and quantization reduce the cost of attention by skipping interactions and lowering the precision of those retained. However, useful interactions diffe 原文：http://arxiv.org/abs/2611.07256",

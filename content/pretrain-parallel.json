@@ -1,7 +1,7 @@
 {
   "title": "并行策略与训练效率",
   "summary": "并行策略没有唯一最优解——选择取决于模型形状、集群规模和通信拓扑。DeepSpeed、Megatron、FSDP 是三大主流实现路线。",
-  "updated_at": "2026-11-06",
+  "updated_at": "2026-11-13",
   "sections": [
     {
       "heading": "五种并行维度",
@@ -114,6 +114,8 @@
       "tldr": "自动同步的技术动态（每日 03:00 任务写入），随领域进展更新。",
       "body": "<p>以下条目由每日同步任务自动追加，按时间倒序排列，<strong>原文链接</strong>可直达原论文/原文。</p>",
       "points": [
+        "[2026-11-10] **LM-SimBench：用于大型语言模型训练模拟的统一框架、数据集和基准**（arXiv）— 通过分布式训练运行来评估候选并行化策略，使得大规模策略选择的成本高得令人望而却步。性能模拟提供了一种成本更低的替代方案，但由于现有模拟器在所建模的训练阶段以及所基于的评估工作负载方面存在差异，因此仍难以在它们之间进行受控比较。 我们推出了LM-SimBench，这是一个用于评估LLM训练模拟器的统一框架、性能分析数据集 原文：http://arxiv.org/abs/2611.14285",
+        "[2026-11-09] **解码 Token 并行性：用于可扩展 LLM 解码的内存高效分布式 Attention 并行性**（arXiv）— 在高并发下为长上下文的大型语言模型提供服务，需要随着解码池的增长而增长的 KV 缓存容量和注意力带宽。现有的并行化策略相互权衡：数据并行化会复制模型权重，从而限制 KV 容量；张量并行化会在模型的 KV 头数处停止扩展注意力，并将密集型集合操作推送到各个节点； 解码上下文并行化 (DCP) 通过对序列进行分片来恢复容量 原文：http://arxiv.org/abs/2611.13293",
         "[2026-11-05] **德语NLLB的数据集收集和微调--英语翻译**（arXiv）— This paper describes the curation of a high-quality parallel corpus from OPUS Books and the fine-tuning of Meta's NLLB-200 models for German--English translatio 原文：http://arxiv.org/abs/2611.07797",
         "[2026-11-05] **KOSMOS ：用于通信-计算重叠的自调度持久内核**（arXiv）— Tensor and sequence parallelism (TP+SP) and expert parallelism (EP) put collectives on the critical path of transformer layers. State-of-the-art fused kernels m 原文：http://arxiv.org/abs/2611.07477"
       ]

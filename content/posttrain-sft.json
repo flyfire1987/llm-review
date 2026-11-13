@@ -1,7 +1,7 @@
 {
   "title": "SFT 与指令数据",
   "summary": "SFT 的效果主要取决于数据，而非训练超参——这是当前共识度最高的结论之一。",
-  "updated_at": "2026-11-06",
+  "updated_at": "2026-11-11",
   "sections": [
     {
       "heading": "SFT 解决什么问题",
@@ -112,10 +112,14 @@
       "tldr": "自动同步的技术动态（每日 03:00 任务写入），随领域进展更新。",
       "body": "<p>以下条目由每日同步任务自动追加，按时间倒序排列，<strong>原文链接</strong>可直达原论文/原文。</p>",
       "points": [
+        "[2026-11-09] **MNN-Pocket-0.3B技术报告**（arXiv）— 本技术报告介绍MNN-Pocket-0.3B ，这是一种紧凑的300M参数密集语言模型，旨在实现高效的设备上部署并支持高达32K令牌的上下文长度。INT4部署占地面积仅为173 MB ， iPad Pro M5 （金属）上的解码吞吐量高达466个令牌/秒，可以无缝集成到智能手机和智能眼镜等边缘设备上的应用程序中。 MN 原文：http://arxiv.org/abs/2611.12311",
+        "[2026-11-05] **评估Token概率作为人类行为模拟的可信度估计：卢森堡案例研究**（arXiv）— 随着大型语言模型（ LLMs ）越来越多地用于模拟人类行为，其操作有效性通常仅通过准确性进行评估，隐式地将人类行为视为确定性。我们认为，在有噪声的数字跟踪数据上，模型的性能不仅取决于预测正确的结果，还取决于其校准。 我们展示了一个案例研究，测试开放权重LLMs的代币概率是否可以作为Next Like Predictio 原文：http://arxiv.org/abs/2611.07735",
+        "[2026-11-05] **从扭曲的事实到流氓Agents ： LLMs能可靠地检测多维幻觉吗？**（arXiv）— 大型语言模型（ LLMs ）广泛用于信息访问、内容制作和基于代理的任务执行，但其输出仍然容易受到微妙的高风险幻觉的影响。 为了系统地评估和推进代后幻觉检测，我们引入了HaluCheck ，这是一个大规模的双语基准，包括超过42000个实例，涵盖文本中的事实幻觉和智能体轨迹中的忠诚幻觉。HaluCheck具有精细的多级注 原文：http://arxiv.org/abs/2611.08231",
+        "[2026-11-05] **LoRA在有监督微调和强化学习中的频谱和子空间动力学**（arXiv）— 低秩自适应（ LoRA ）通常用于监督微调（ SFT ）和强化学习（ RL ） ，通常在类似的优化器设置下使用。然而， LoRA优化的低秩增量如何体现两个阶段的不同动态尚不清楚。 跟踪LoRA在数学推理任务上的奇异谱和子空间，我们发现RL以每个学习速率集中谱，而SFT以中等学习速率扩展谱；此外， RL以小的学习速率旋转 原文：http://arxiv.org/abs/2611.08414",
+        "[2026-11-05] **Generate-then-Rank ：体验Agents的学习符号目标解释**（arXiv）— 目标解释是将自然语言指令翻译成规划师可以执行的正式符号目标。这对于具体化的客服代表至关重要，因为这里的任何错误都会传播到每个下游计划和行动步骤。要想做得好，既需要生成合适的候选人，也需要可靠地从中进行选择。我们在Embodied Agent界面(EAI)中提出了一种两阶段生成然后排序的目标解释方法。 首先，监督微调使大 原文：http://arxiv.org/abs/2611.07825",
+        "[2026-11-05] **迈向基础决策模型： Drex**（arXiv）— 具有大型语言模型的自回归方法，例如长思维链推理，已成为新的人工智能应用程序的默认方法，因为它们在广泛的任务中达到更高的准确性。然而，在生产中，它们给出了不一致的答案，需要解析输出，并增加了成本和延迟。 决策模型解决了这个问题：给定一个问题和用户提供的一组选项，它们在没有自回归解码的情况下返回选项的概率分布。我们提出了D 原文：http://arxiv.org/abs/2611.07854",
         "[2026-11-04] **用于缩放LLM Agents的旋转级最佳N采样**（arXiv）— In this work, we evaluate a simple inference-time scaling approach based on \\textit{turn-level best-of-N sampling} (\\method) for large language model (LLM) agen 原文：http://arxiv.org/abs/2611.06868",
-        "[2026-11-04] **将Qwen3从0.6B改为8B ：较低的文本丢失并不意味着更好地理解**（arXiv）— Small LoRA adapters trained on Tajik news and books lowered Qwen3's Tajik text loss at every size we tried, from 0.6B to 8B, by 0.60 to 1.45 nats per token, but 原文：http://arxiv.org/abs/2611.06062",
-        "[2026-11-04] **SD-LoRA ：培训时间结构蒸馏到LoRA中进行少量视觉语言适应**（arXiv）— Few-shot adaptation of vision-language models must balance two competing goals: learning fine-grained visual distinctions from very limited supervision and pres 原文：http://arxiv.org/abs/2611.07063",
-        "[2026-11-04] **AssameseLM-E2B ：面向高效消费级部署的开放式阿萨姆语模型**（arXiv）— While Large Language Models (LLMs) excel in high-resource languages, their performance often degrades in low-resource languages due to tokenization inefficienci 原文：http://arxiv.org/abs/2611.06170"
+        "[2026-11-04] **将Qwen3从0.6B改为8B ：较低的文本丢失并不意味着更好地理解**（arXiv）— Small LoRA adapters trained on Tajik news and books lowered Qwen3's Tajik text loss at every size we tried, from 0.6B to 8B, by 0.60 to 1.45 nats per token, but 原文：http://arxiv.org/abs/2611.06062"
       ]
     }
   ]

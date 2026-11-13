@@ -1,7 +1,7 @@
 {
   "title": "Agent 与工具调用训练",
   "summary": "工具调用训练的核心不是让模型「会写函数签名」，而是让模型学会在多轮交互中根据环境反馈修正自己的行动——这是长程信用分配问题。",
-  "updated_at": "2026-11-06",
+  "updated_at": "2026-11-13",
   "sections": [
     {
       "heading": "从 QA 到 Agent",
@@ -119,11 +119,14 @@
       "tldr": "自动同步的技术动态（每日 03:00 任务写入），随领域进展更新。",
       "body": "<p>以下条目由每日同步任务自动追加，按时间倒序排列，<strong>原文链接</strong>可直达原论文/原文。</p>",
       "points": [
+        "[2026-11-10] **CAGE 4 分数衡量的内容：对一项成熟的网络防御基准、其参考防御者以及基于它们的表格的审核**（arXiv）— CAGE挑战4是用于比较经过学习的多智能体网络防御者的基准。我们在一个固定的容器中重现了它的两个参考防御者，即KEEP和H-MARL Expert，并表明从中读取的三项指标的测量值低于其应有的测量值。首先，对于其上一个操作仍在运行的智能体，模拟器会悄然丢弃为其断言的任何操作，并对被丢弃的“恢复”操作扣除一分，就像对正在 原文：http://arxiv.org/abs/2611.14068",
+        "[2026-11-10] **云计算中基于LLM的多Agent工作流的多目标调度**（arXiv）— 大型语言模型（LLMs）正越来越多地被纳入多智能体工作流，以完成复杂的多步任务。随着开源模型继续缩小与专有模型的性能差距，模型参数在人工智能市场中正成为一个不那么重要的竞争优势来源。 然而，尽管这是一个日益严峻的问题，但在文献中，如何将这些模型高效地调度到云等分布式基础设施上，在整体延迟、货币成本和资源利用率方面，仍未 原文：http://arxiv.org/abs/2611.13740",
+        "[2026-11-09] **通过评估侧部分可观察博弈减轻Agentic欺骗**（arXiv）— 随着大型语言模型变得更有能力的代理，它们可能会表现出欺骗行为，欺骗人类以获得更高的奖励，同时看起来很有帮助。我们将这种失败归因于评估方面的部分可观察性，其中模型主要从最终结果进行评估，而不检查潜在推理、工具使用和环境影响的忠实性。 先前的缓解措施通过预定义的评估者潜信念空间或一次性监控来解决这种部分可观察性，这些空间不 原文：http://arxiv.org/abs/2611.12835",
+        "[2026-11-05] **核心：使用Context Management进行深入研究的从粗到细的搜索**（arXiv）— 深度研究代理通过反复搜索来回答复杂的问题。他们依靠一个线束来运行他们的工具调用，并将证据返回到他们的上下文中。这创造了一个权衡：搜索在长段落中效果最好，这为可靠的语义匹配提供了足够的上下文。但返回的证据应该是简短的，因为在剩余的轨迹中，每个观察结果都停留在客服代表的上下文中。 我们推出了CORE ，这是一种将粗细搜索与 原文：http://arxiv.org/abs/2611.07859",
+        "[2026-11-05] **终端式数学建模平台：第一个Agentic和可验证的数学建模基准**（arXiv）— Mathematical modeling turns an open-ended real-world problem into assumptions, a model, a solution, and a defended recommendation, and its answers matter only i 原文：http://arxiv.org/abs/2611.08237",
         "[2026-11-05] **Agent-R $ ^ 2 $ ：通过实源数据合成缩放Agents以实现逼真的生产力工作**（arXiv）— Large language models have made rapid progress in agentic reasoning and tool use, raising expectations for agents that can take over realistic productivity work 原文：http://arxiv.org/abs/2611.08219",
         "[2026-11-04] **使用缓存跟踪进行任务高效Agent评估**（arXiv）— Efficient benchmarking estimates a system's full benchmark performance from a small number of task executions. Standard approaches rely solely on the binary cor 原文：http://arxiv.org/abs/2611.06803",
-        "[2026-11-04] **多步骤SWE ：编码Agents可以在长时间内继续构建自己的代码吗？**（arXiv）— Developers rarely give a coding agent a single request: they ask it to build a component and then to extend, upgrade, and optimize it, each time on code the age 原文：http://arxiv.org/abs/2611.07166",
-        "[2026-11-04] **在LLM Agents中，多圈强化学习真正有哪些改进？**（arXiv）— While multi-turn agentic reinforcement learning (RL) excels on long-horizon tasks, its performance gains remain highly sensitive to interaction constraints. Eva 原文：http://arxiv.org/abs/2611.06483",
-        "[2026-11-04] **浅编码散发深刻记忆**（arXiv）— Hybrid language models interleave a few softmax-attention layers with many linear-attention or state-space layers, so every layer keeps a memory of earlier toke 原文：http://arxiv.org/abs/2611.06084"
+        "[2026-11-04] **多步骤SWE ：编码Agents可以在长时间内继续构建自己的代码吗？**（arXiv）— Developers rarely give a coding agent a single request: they ask it to build a component and then to extend, upgrade, and optimize it, each time on code the age 原文：http://arxiv.org/abs/2611.07166"
       ]
     }
   ]

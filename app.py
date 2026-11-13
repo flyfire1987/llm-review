@@ -11,6 +11,7 @@ import hmac
 import os
 import sys
 import traceback
+from datetime import date, timedelta
 
 from flask import (Flask, render_template, request, jsonify,
                    redirect, url_for, abort, send_from_directory, session)
@@ -28,6 +29,9 @@ app.secret_key = os.environ.get('LLM_REVIEW_SECRET', 'llm-review-secret-2026')
 
 # Caddy 反代时前缀是 /llm，用它拼绝对 URL
 SCRIPT_NAME = os.environ.get('LLM_REVIEW_SCRIPT_NAME', '/llm')
+
+# 每日动态：最近 N 天直接平铺，更早的按年+月折叠到子菜单
+RECENT_NEWS_DAYS = 7
 
 # ── 编辑鉴权 ──────────────────────────────────────────────────────────────
 # 编辑接口是写操作，公网暴露时必须校验，避免任何人改内容。
@@ -130,7 +134,11 @@ def page(slug):
 @app.route('/news')
 @app.route('/news/')
 def news_index():
-    """每日动态列表页（按日期倒序）"""
+    """每日动态列表页（按日期倒序）
+
+    2026-11-06：最近一周直接平铺展示，更早的历史按「年 + 月」折叠，
+    折叠项挂在左侧「每日动态」子菜单下。
+    """
     nav = store.load_nav()
     dates = store.list_news_dates()
     entries = []
@@ -142,8 +150,39 @@ def news_index():
             'news_items': data.get('news_items', []),
         })
     total = sum(len(e['items']) + len(e['news_items']) for e in entries)
+
+    # 分成「最近一周」和「历史归档」
+    recent_cutoff = (date.today() - timedelta(days=RECENT_NEWS_DAYS)).isoformat()
+    recent = [e for e in entries if e['date'] >= recent_cutoff]
+    archived = [e for e in entries if e['date'] < recent_cutoff]
+
+    # 历史按 年 → 月 分组（日期倒序，年月都从新到旧）
+    groups = {}
+    for e in archived:
+        y, m, _ = e['date'].split('-')
+        g = groups.setdefault(y, {})
+        g.setdefault(m, []).append(e)
+    archives = [
+        {
+            'year': y,
+            'months': [
+                {
+                    'month': m,
+                    'label': f'{y} 年 {int(m)} 月',
+                    'count': sum(len(x['items']) + len(x['news_items'])
+                                 for x in months),
+                    'entries': months,
+                }
+                for m, months in sorted(g.items(), key=lambda kv: -int(kv[0]))
+            ],
+        }
+        for y, g in sorted(groups.items(), reverse=True)
+    ]
+
     return render_template('news.html', nav=nav, entries=entries,
-                           dates=dates, total=total)
+                           recent=recent, archives=archives,
+                           dates=dates, total=total,
+                           recent_days=RECENT_NEWS_DAYS)
 
 
 @app.route('/news/<date_str>')

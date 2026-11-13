@@ -1,7 +1,7 @@
 {
   "title": "评测体系",
   "summary": "评测是整个后训练环节最容易被操纵的部分——污染、指标失真、judge 偏差是三个必须先解决的问题。",
-  "updated_at": "2026-11-06",
+  "updated_at": "2026-11-13",
   "sections": [
     {
       "heading": "评测的三层结构",
@@ -117,11 +117,14 @@
       "tldr": "自动同步的技术动态（每日 03:00 任务写入），随领域进展更新。",
       "body": "<p>以下条目由每日同步任务自动追加，按时间倒序排列，<strong>原文链接</strong>可直达原论文/原文。</p>",
       "points": [
-        "[2026-11-03] **AGORA ：通过项目响应理论对LLM评委进行可靠性感知聚合**（arXiv）— LLM-as-a-judge is a common substitute for costly human evaluation, and aggregating several judges is the standard remedy for any single judge's bias. Judge pool 原文：http://arxiv.org/abs/2611.05556",
-        "[2026-11-04] **通过软提示调整使LLM法官适应观察到的人体注释策略**（arXiv）— Large Language Models (LLMs) are increasingly employed as automated judges for evaluating chatbot responses. While proprietary models can achieve high agreement 原文：http://arxiv.org/abs/2611.07126",
-        "[2026-11-04] **捣蛋：合成图像对多式联运医疗Reasoning的对抗性评估**（arXiv）— We used medical image synthesis to create a challenging multimodal evaluation framework that exposes hallucination behaviors in frontier models. Evaluating mult 原文：http://arxiv.org/abs/2611.06631",
-        "[2026-11-04] **语言模型中汉字的语音学知识**（arXiv）— How much phonological knowledge do language models (LMs) possess about Chinese characters, and how is this knowledge represented and used? We introduce PinyinBe 原文：http://arxiv.org/abs/2611.05803",
-        "[2026-11-04] **LLM服务引擎中配置和缓存体系结构的受控实验评估**（arXiv）— Multi-agent LLM applications repeat most of their prompt tokens across requests, and serving engines reuse the cached state of shared prefixes. vLLM and SGLang  原文：http://arxiv.org/abs/2611.05991"
+        "[2026-11-10] **一项政策应对100项家务：我们对2026年行为挑战的解决方案**（arXiv）— 我们介绍了针对 2026 年 BEHAVIOR 挑战赛的解决方案：在 OmniGibson 模拟器中完成 100 项长时程家务任务。我们在最终排行榜上名列第 9 位，是前 10 名中唯一的独立团队。该解决方案的核心是一个单一的视觉-语言-动作（VLA）模型，一个检查点适用于所有 100 项任务，建立在我们基于 $π_{ 原文：http://arxiv.org/abs/2611.14432",
+        "[2026-11-10] **不是人工智能变得更笨，而是我们变得更挑剔：人类对大型语言模型评估的标准不断提高**（arXiv）— 用户经常抱怨说，ChatGPT 等人工智能助手越来越差。有些版本确实会发生变化，但人类评估却忽略了另一种可能性：做出评判的人也可能发生变化。我们在 Chatbot Arena 上将两者区分开来。Chatbot Arena 是一个公共平台，人们可以在这里比较两个匿名大型语言模型（LLMs）的答案，然后选择更好的一个，或者 原文：http://arxiv.org/abs/2611.14333",
+        "[2026-11-05] **通过Context镜头进行压缩：在阿拉伯语法律LLMs中评估适应、量化和蒸馏**（arXiv）— 模型压缩可以促进大型语言模型在资源受限的法律环境中的部署，但其对特定领域性能的影响可能取决于评估协议。我们使用ArabLegalEval （沙特阿拉伯的法律基准）在带上下文和无上下文评估下调查此问题。前者提供了支持性法律段落，而后者则在没有外部背景的情况下评估绩效。 删除上下文会使基本模型的精度差距高达27个百分点。我 原文：http://arxiv.org/abs/2611.07988",
+        "[2026-11-05] **多式联运-SEA ：在多式联运社会工程攻击下对AI Agent安全进行基准测试**（arXiv）— 个人人工智能代理面临由伪造的多模式内容支持的社会工程攻击，但现有的评估主要集中在基于文本的对话上，使得对这种攻击下的内在安全性研究不足。我们引入了Multimodal-SEA ，这是一个交互式基准，包括以现实世界欺诈案件为基础的608个专家设计的任务，涵盖14个域和152个具有准备好的多模式内容的攻击场景。 这些任务跨 原文：http://arxiv.org/abs/2611.08281",
+        "[2026-11-05] **作为软件的基准：终端工作台和持续基准的案例**（arXiv）— 编码代理是迄今为止LLMs最具经济效益的部署之一，因此可靠的评估变得越来越重要。然而，即使是在发布时经过仔细验证的基准也可能变得过时。随着模型的改进，他们可以发现现有验证者拒绝的有效解决方案，而评估基础设施的更改可能会使任务和测试中嵌入的假设无效。 我们将由此产生的缺陷基准维护债务积累称为：基准分数与它们旨在衡量的能力 原文：http://arxiv.org/abs/2611.08417",
+        "[2026-11-05] **SpecCTMC ： Diffusion语言模型连续时间马尔可夫链的精确推测仿真**（arXiv）— 掩码扩散语言模型提供并行文本生成，但独立采样多个令牌可能会破坏它们的依赖性并改变输出分布。精确的连续时间采样避免了这种近似，但通常需要每个令牌一个连续的模型评估。我们引入了SpecCTMC ，这是一种无需训练的投机采样器，可以减少这种连续瓶颈，而无需单独的草案模型。 SpecCTMC使用先前计算的模型预测提出连续的令牌 原文：http://arxiv.org/abs/2611.08362",
+        "[2026-11-05] **PBPO ： Diffusion语言模型的前缀块策略优化**（arXiv）— Diffusion大型语言模型（ dLLMs ）通常通过跨块自回归进行解码，同时对每个块内的多个令牌进行迭代去噪。这种结构使块级策略优化成为自回归策略优化的自然适应。然而，完成块的确切可能性是棘手的，因为它在中间状态上边缘化并揭示去噪过程的顺序。 为了实现块级公式，我们构造了一个前缀块状态，并使用单个模型评估来定义块概 原文：http://arxiv.org/abs/2611.07783",
+        "[2026-11-03] **AGORA ：通过项目响应理论对LLM评委进行可靠性感知聚合**（arXiv）— LLM-as-a-judge is a common substitute for costly human evaluation, and aggregating several judges is the standard remedy for any single judge's bias. Judge pool 原文：http://arxiv.org/abs/2611.05556"
       ]
     }
   ]

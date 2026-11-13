@@ -446,7 +446,11 @@ def _restore(text, store):
 
 
 def _translate_mymemory(text):
-    """调用 MyMemory 免费翻译 API"""
+    """调用 MyMemory 免费翻译 API。
+
+    注意：MyMemory 单次请求有硬长度上限（实测 ~510 字符，超过直接返回空）。
+    长文本必须分块调用，否则会静默失败。
+    """
     prot, store = _protect(text)
     url = (_MYMEM_URL + '?q=' + urllib.parse.quote(prot) + '&langpair=en|zh-CN')
     req = urllib.request.Request(url, headers={'User-Agent': UA})
@@ -459,6 +463,38 @@ def _translate_mymemory(text):
     if 'MYMEMORY WARNING' in zh or 'QUERY LENGTH LIMIT' in zh:
         return None
     return _restore(zh, store)
+
+
+def _chunk_text(text, size=450):
+    """按句子边界切块，避免截断单词。"""
+    parts = re.split(r'(?<=[.!?;])\s+', text)
+    chunks, cur = [], ''
+    for p in parts:
+        if len(cur) + len(p) + 1 > size and cur:
+            chunks.append(cur)
+            cur = p
+        else:
+            cur = (cur + ' ' + p).strip() if cur else p
+    if cur:
+        chunks.append(cur)
+    return chunks
+
+
+def _translate_mymemory_long(text, limit=None):
+    """分块翻译长文本。任一块失败则整篇失败（避免半中半英）。"""
+    chunks = _chunk_text(text)
+    if len(chunks) <= 1:
+        return _translate_mymemory(text)
+    out = []
+    for c in chunks:
+        r = _translate_mymemory(c)
+        if not r:
+            return None
+        out.append(r.strip())
+    res = ' '.join(out)
+    if limit:
+        res = res[:limit]
+    return res
 
 
 def _translate_argos(text):
@@ -522,13 +558,19 @@ def translate_title(title):
 
 
 def summarize_to_zh(summary, limit=200):
-    """把摘要转成中文要点"""
+    """把摘要转成中文要点（最多 limit 字）。
+
+    2026-11-06 修复：原来直接把整段摘要丢给 MyMemory，但该 API 单次
+    硬上限约 510 字符（实测 515 起返回空），arXiv 摘要普遍更长
+    —— 于是全部翻译失败并静默回退成英文，页面上就是「只有标题没有
+    中文摘要」。改用分块翻译后长摘要也能出中文。
+    """
     s = ' '.join((summary or '').split())
     if not s:
         return ''
-    if len(s) > 700:
-        s = s[:700]
-    for fn in (_translate_llm_api, _translate_mymemory):
+    if len(s) > 1200:
+        s = s[:1200]
+    for fn in (_translate_llm_api, _translate_mymemory_long):
         try:
             res = fn(s)
             if res and res.strip():

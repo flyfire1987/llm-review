@@ -1,7 +1,7 @@
 {
   "title": "强化学习算法",
   "summary": "LLM 上的 RL 从 PPO 转向 GRPO 等去 value model 的方法，核心驱动力是稳定性与显存效率；RLVR（可验证奖励）成为提升推理能力的主力手段。",
-  "updated_at": "2026-11-06",
+  "updated_at": "2026-11-13",
   "sections": [
     {
       "heading": "RL 在 LLM 上的定位",
@@ -119,14 +119,14 @@
       "tldr": "自动同步的技术动态（每日 03:00 任务写入），随领域进展更新。",
       "body": "<p>以下条目由每日同步任务自动追加，按时间倒序排列，<strong>原文链接</strong>可直达原论文/原文。</p>",
       "points": [
-        "[2025-06-16] **麻省理工学院研究人员推出“SEAL” ：迈向自我完善人工智能的新步骤**（机器之心）— 麻省理工学院引入了SEAL ，这是一个框架，使大型语言模型能够通过强化学习进行自我编辑和更新其权重。麻省理工学院的研究人员揭开了“SEAL”的面纱：迈向自我完善AI的新步骤首次出现在Synced上。 原文：https://syncedreview.com/2025/06/16/mit-researchers-unveil-seal-a-new-step-towards-self-improving-ai/",
-        "[2026-11-05] **收件人SR ： Attention步进奖励长地平线Agentic RL**（arXiv）— Long-horizon LLM agents make multi-step decisions, yet outcome-reward-only reinforcement learning provides little direct supervision for individual steps. We in 原文：http://arxiv.org/abs/2611.07932",
-        "[2026-11-05] **通过大规模并行加速安全强化学习**（arXiv）— We investigate the problem of scaling safe reinforcement learning (safe RL) to massively parallel training regimes, where a large number of environments are exe 原文：http://arxiv.org/abs/2611.08273",
-        "[2026-11-05] **针对GRPO解压缩强弱OPD的计算效率**（arXiv）— On-policy distillation (OPD) trains a student on its own rollouts under a frozen teacher's per-token supervision. Does this dense signal reduce the training FLO 原文：http://arxiv.org/abs/2611.08453",
-        "[2026-11-04] **MAC-v2 ：基于长视野模型的像素值扩展**（arXiv）— We study whether \\emph{long-horizon model-based value expansion} can serve as an effective framework in pixel-based offline reinforcement learning (RL). Long-ho 原文：http://arxiv.org/abs/2611.07245",
-        "[2025-04-30] **DeepSeek推出DeepSeek-Prover-V2 ：利用递归证明搜索和新基准推进神经定理证明**（机器之心）— DeepSeek AI发布了DeepSeek-Prover-V2 ，这是一个用于精益4定理证明的开源LLM。它使用DeepSeek-V3的递归证明搜索来训练数据和强化学习，在MiniF2F上获得最佳结果。DeepSeek发布了DeepSeek-Prover-V2 ：使用递归证明搜索推进神经定理证明和新基准首次出现在Sy 原文：https://syncedreview.com/2025/04/30/deepseek-unveils-deepseek-prover-v2-advancing-neural-theorem-proving-with-recursive-proof-search-and-a-new-benchmark/",
-        "[2026-11-05] **PSGAgent ：通过Agentic Reasoning增强MLLMs用于全景场景图生成的动态视觉感知**（arXiv）— Panoptic Scene Graph generation (PSG) requires holistic yet fine-grained reasoning over complex relations among objects. However, current Multimodal Large Langu 原文：http://arxiv.org/abs/2611.07408",
-        "[2026-11-03] **章鱼：潜伏KV Multi-Agent强化学习的一个大脑，多个分支**（arXiv）— Multi-agent LLM systems explore in parallel by spawning sub-agents with isolated context windows, whereas single-agent systems append every search and verificat 原文：http://arxiv.org/abs/2611.06956"
+        "[2026-11-10] **Dense Rewards 值得其在GRPO的Tokens吗？**（arXiv）— RLVR 通过奖励正确的最终答案来训练语言模型进行推理。组相关策略优化 (GRPO) 是一种广泛使用的算法，它对解决方案的每个标记给予相同的奖励，因此有人提出了密集过程奖励，以奖励中间步骤，例如使用蒙特卡洛奖励，通过从中采样后续步骤来对每个步骤进行评分。 将这样的奖励与每次训练更新的 GRPO 进行比较，或者使用单个批 原文：http://arxiv.org/abs/2611.13560",
+        "[2026-11-10] **AutoScaffold：用于语言模型强化学习的 AI 引导式脚手架**（arXiv）— 采用可验证奖励的强化学习（RLVR）可产生丰富的训练经验，但结果奖励会将每次尝试简化为一个数字，导致大部分信息得不到利用。训练时的支架（例如在训练期间添加到提示中的策略或提示）提供了一种将这些信息转化为指导的自然方式，但它们的设计和调整在很大程度上由人类完成，并针对特定领域进行定制。 我们推出了 AutoScaffol 原文：http://arxiv.org/abs/2611.14515",
+        "[2026-11-10] **用于具有可验证奖励的强化学习的边际引导型 Token 信用**（arXiv）— 在具有可验证奖励的强化学习中，语言模型因正确的最终答案而获得奖励，GRPO 将该奖励以同等比例分配给解决方案的每个标记。相反，我们采用一种名为 MCPO（边际奖励策略优化）的方法，将奖励分配给模型犹豫的地方。 我们通过策略的下一个标记分布的前2名差值 $M=p_1-p_2$ 来衡量犹豫程度，将其映射到一个具有两个固定阈 原文：http://arxiv.org/abs/2611.14015",
+        "[2026-11-09] **Agentic-OPD ：通过Agentic任务的随机蒸馏恢复被遗忘的Agent功能**（arXiv）— 强化学习现在是训练LLMs代理任务的主流范式，但标准实践只保留最佳验证检查点，而丢弃其余部分。我们证明这是有损的：在GRPO的LLM代理培训中，最佳验证检查点无法解决同一运行的早期检查点已经解决的问题，并且跨检查点解决的问题的联合远远超过任何一个检查点。 因此，丢弃的检查点形成了一个无需额外培训成本即可获得的教师池，政 原文：http://arxiv.org/abs/2611.12799",
+        "[2026-11-09] **多回合临床安全强化学习Agents ：当密集奖励超过结果奖励时**（arXiv）— 具有可验证奖励的强化学习越来越多地用于改进语言模型推理，但其对顺序决策过程的影响仍然知之甚少。我们在临床多轮代理中研究这个问题，这些代理必须决定请求哪些信息、何时停止收集证据以及采取哪些行动。 我们引入了三种受控环境：药物补充分流、急性诊断检查和剂量滴定，每种环境都有隐藏的临床状态、查询成本、精确的自适应预言机和确定性 原文：http://arxiv.org/abs/2611.12728",
+        "[2026-11-04] **通过弹性专家并行进行资源节约型强化学习后训练**（arXiv）— 强化学习后训练提高了大型语言模型的能力，但生成训练响应是一个主要的计算瓶颈。在专家混合模型中，完成指定回复的员工可能会保持忙碌状态，因为处理较长回复的员工仍然需要他们的专家。 因此，基线中约三分之一的占用工人时间发生在本地响应生成完成后。在这里，我们介绍FlexFloor ，该系统可在同步响应生成期间提前释放资源，同时 原文：http://arxiv.org/abs/2611.06984",
+        "[2026-11-05] **ReferClaw ：消除用户以自我为中心的帮助意图的歧义**（arXiv）— 以自我为中心的人工智能助手的用户经常会问一些简短而模棱两可的问题，这些问题的目标对象无法从视频和对话历史中得到唯一的解决。例如， “我把它放在哪里了？”可能指的是以前处理过的几个对象。现有的VideoQA系统通常采用单一解释，冒着合理但意图不一致的答案的风险。 我们引入了ReferClaw ，这是一个以自我为中心的流媒 原文：http://arxiv.org/abs/2611.07683",
+        "[2025-06-16] **麻省理工学院研究人员推出“SEAL” ：迈向自我完善人工智能的新步骤**（机器之心）— 麻省理工学院引入了SEAL ，这是一个框架，使大型语言模型能够通过强化学习进行自我编辑和更新其权重。麻省理工学院的研究人员揭开了“SEAL”的面纱：迈向自我完善AI的新步骤首次出现在Synced上。 原文：https://syncedreview.com/2025/06/16/mit-researchers-unveil-seal-a-new-step-towards-self-improving-ai/"
       ]
     }
   ]

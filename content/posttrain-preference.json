@@ -1,7 +1,7 @@
 {
   "title": "偏好对齐：RLHF 与 DPO",
   "summary": "RLHF 打开了偏好对齐这条路，但 DPO 等离线方法用「跳过显式奖励模型」的方式大幅简化了流程，在多数场景下已取代 PPO。",
-  "updated_at": "2026-11-05",
+  "updated_at": "2026-11-12",
   "sections": [
     {
       "heading": "为什么要偏好对齐",
@@ -32,15 +32,63 @@
     {
       "heading": "实验效果",
       "table": {
-        "headers": ["方法", "对比基线", "设置", "关键结果", "出处"],
+        "headers": [
+          "方法",
+          "对比基线",
+          "设置",
+          "关键结果",
+          "出处"
+        ],
         "rows": [
-          ["InstructGPT (RLHF)", "SFT only / 人类专家", "PPO + 1.3B RM", "偏好胜率超过 GPT-3 175B，1B 参数超 175B 偏好水平", "arXiv 2203.02155"],
-          ["DPO", "PPO (RLHF)", "情感控制任务", "同等或更优的偏好胜率，且训练更简单稳定", "arXiv 2305.18290"],
-          ["IPO", "DPO", "情感控制 + 开放生成", "缓解 DPO 过度拟合偏好数据的问题", "arXiv 2310.12036"],
-          ["KTO", "DPO", "仅二元好/坏反馈", "在无成对偏好场景下可用，效果接近 DPO", "arXiv 2402.01306"],
-          ["SimPO", "DPO", "Llama 3.1 8B", "去掉参考模型，省显存，长度归一化后超越 DPO", "arXiv 2405.14734"],
-          ["Math-PRM", "Outcome Reward Model", "MATH 数据集", "过程奖励使最优选择的 pass@1 显著提升", "arXiv 2402.14759"],
-          ["Reward hacking 实证", "—", "RLHF 训练中", "观察到长度增加与特定句式滥用等现象", "arXiv 2310.07716"]
+          [
+            "InstructGPT (RLHF)",
+            "SFT only / 人类专家",
+            "PPO + 1.3B RM",
+            "偏好胜率超过 GPT-3 175B，1B 参数超 175B 偏好水平",
+            "arXiv 2203.02155"
+          ],
+          [
+            "DPO",
+            "PPO (RLHF)",
+            "情感控制任务",
+            "同等或更优的偏好胜率，且训练更简单稳定",
+            "arXiv 2305.18290"
+          ],
+          [
+            "IPO",
+            "DPO",
+            "情感控制 + 开放生成",
+            "缓解 DPO 过度拟合偏好数据的问题",
+            "arXiv 2310.12036"
+          ],
+          [
+            "KTO",
+            "DPO",
+            "仅二元好/坏反馈",
+            "在无成对偏好场景下可用，效果接近 DPO",
+            "arXiv 2402.01306"
+          ],
+          [
+            "SimPO",
+            "DPO",
+            "Llama 3.1 8B",
+            "去掉参考模型，省显存，长度归一化后超越 DPO",
+            "arXiv 2405.14734"
+          ],
+          [
+            "Math-PRM",
+            "Outcome Reward Model",
+            "MATH 数据集",
+            "过程奖励使最优选择的 pass@1 显著提升",
+            "arXiv 2402.14759"
+          ],
+          [
+            "Reward hacking 实证",
+            "—",
+            "RLHF 训练中",
+            "观察到长度增加与特定句式滥用等现象",
+            "arXiv 2310.07716"
+          ]
         ],
         "caption": "注：LLM-as-Judge 胜率是主流指标，但存在 self-preference / 位置偏差，需人工抽检"
       }
@@ -49,13 +97,43 @@
       "heading": "适用边界",
       "body": "<ul><li><strong>DPO 不会提升推理能力</strong>：偏好对齐主要改变「行为」，不改变「会不会算」。数学/代码类能力提升需要 RL + 可验证奖励</li><li><strong>偏好数据质量是天花板</strong>：RM 再强也超不过偏好数据的标注质量上限</li><li><strong>RLHF 工程复杂度高</strong>：需要同时维护 RM、policy、ref、value 四个模型和在线采样管线，显存与调参成本远高于 DPO</li><li><strong>偏好数据易被特定标注偏好污染</strong>：单一标注团队的偏好会被模型放大（风格单一、长度偏置）</li><li><strong>KTO/单样本反馈</strong>在真实场景数据效率更高，但要接受更弱的相对信号</li></ul>",
       "refs": [
-        {"title": "Training language models to follow instructions with human feedback (InstructGPT)", "url": "https://arxiv.org/abs/2203.02155"},
-        {"title": "Direct Preference Optimization: Your Language Model is Secretly a Reward Model", "url": "https://arxiv.org/abs/2305.18290"},
-        {"title": "A General Theoretical Paradigm to Understand Learning from Human Preferences (IPO)", "url": "https://arxiv.org/abs/2310.12036"},
-        {"title": "KTO: Model Alignment as Prospect Theoretic Optimization", "url": "https://arxiv.org/abs/2402.01306"},
-        {"title": "SimPO: Simple Preference Optimization with a Reference-Free Reward", "url": "https://arxiv.org/abs/2405.14734"},
-        {"title": "Let's Verify Step by Step (Math-PRM)", "url": "https://arxiv.org/abs/2402.14759"},
-        {"title": "Scaling Laws for Reward Model Overoptimization (reward hacking)", "url": "https://arxiv.org/abs/2310.07716"}
+        {
+          "title": "Training language models to follow instructions with human feedback (InstructGPT)",
+          "url": "https://arxiv.org/abs/2203.02155"
+        },
+        {
+          "title": "Direct Preference Optimization: Your Language Model is Secretly a Reward Model",
+          "url": "https://arxiv.org/abs/2305.18290"
+        },
+        {
+          "title": "A General Theoretical Paradigm to Understand Learning from Human Preferences (IPO)",
+          "url": "https://arxiv.org/abs/2310.12036"
+        },
+        {
+          "title": "KTO: Model Alignment as Prospect Theoretic Optimization",
+          "url": "https://arxiv.org/abs/2402.01306"
+        },
+        {
+          "title": "SimPO: Simple Preference Optimization with a Reference-Free Reward",
+          "url": "https://arxiv.org/abs/2405.14734"
+        },
+        {
+          "title": "Let's Verify Step by Step (Math-PRM)",
+          "url": "https://arxiv.org/abs/2402.14759"
+        },
+        {
+          "title": "Scaling Laws for Reward Model Overoptimization (reward hacking)",
+          "url": "https://arxiv.org/abs/2310.07716"
+        }
+      ]
+    },
+    {
+      "heading": "📌 最新进展",
+      "tldr": "自动同步的技术动态（每日 03:00 任务写入），随领域进展更新。",
+      "body": "<p>以下条目由每日同步任务自动追加，按时间倒序排列，<strong>原文链接</strong>可直达原论文/原文。</p>",
+      "points": [
+        "[2026-11-10] **利用身心Attentional分布进行凝视增强的奖励建模**（arXiv）— 将人类反馈整合到语言模型中，作为使模型输出与人类偏好相一致的一种手段，正日益受到关注，而基于人类反馈的强化学习（RLHF）是基于偏好的一致性的一个重要框架。最近的研究将眼动追踪（ET）数据作为奖励模型训练的额外监督信号，将奖励学习建立在人类阅读行为的基础上。 在此方法的基础上，我们利用认知心理学在人类字母识别方面的既有 原文：http://arxiv.org/abs/2611.13477",
+        "[2026-11-09] **MARL系统建模的模块化视角**（arXiv）— Multi-Agent强化学习（ MARL ）日益复杂，分散了文献，模糊了多样化实施背后的基础架构选择。这种碎片化使得难以孤立地评估关键建模维度，识别组件如何影响所产生的系统动态，以及比较、重用或组合整个文献中的贡献。 本文提出了MARL系统建模、分析和实现的模块化视角。我们将它们分解为八个功能模块：代理、环境、学习、 原文：http://arxiv.org/abs/2611.12314"
       ]
     }
   ]

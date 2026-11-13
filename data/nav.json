@@ -173,7 +173,37 @@
       "color": "#f97316",
       "summary": "每日 03:00 自动同步的大模型领域最新论文与新闻，按日期归档，译文附原文链接。",
       "kind": "news",
-      "children": []
+      "children": [
+        {
+          "title": "2026 年",
+          "slug": "news-archive-2026",
+          "kind": "news-archive-year",
+          "year": "2026",
+          "children": [
+            {
+              "title": "10 月（1 天）",
+              "slug": "news-archive-2026-10",
+              "kind": "news-archive",
+              "year": "2026",
+              "month": "10"
+            },
+            {
+              "title": "9 月（1 天）",
+              "slug": "news-archive-2026-09",
+              "kind": "news-archive",
+              "year": "2026",
+              "month": "09"
+            },
+            {
+              "title": "8 月（2 天）",
+              "slug": "news-archive-2026-08",
+              "kind": "news-archive",
+              "year": "2026",
+              "month": "08"
+            }
+          ]
+        }
+      ]
     }
   ]
 }

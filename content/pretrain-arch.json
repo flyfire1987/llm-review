@@ -1,7 +1,7 @@
 {
   "title": "预训练架构设计",
   "summary": "Decoder-only 是当前共识，但共识形成的过程有明确实证依据；归一化、位置编码、Attention 变体是真正影响细节的三个杠杆。",
-  "updated_at": "2026-11-06",
+  "updated_at": "2026-11-13",
   "sections": [
     {
       "heading": "架构选型：为什么是 Decoder-only",
@@ -124,6 +124,9 @@
       "tldr": "自动同步的技术动态（每日 03:00 任务写入），随领域进展更新。",
       "body": "<p>以下条目由每日同步任务自动追加，按时间倒序排列，<strong>原文链接</strong>可直达原论文/原文。</p>",
       "points": [
+        "[2026-11-10] **在集中式与分散式Attention头部脱落情况下的自回归多步Reasoning细分**（arXiv）— 在长时间清醒期间，哺乳动物的新皮层网络会经历局部性短暂神经元沉默期，称为“静息态”。在这里，我们研究了类似的在时空上集中的中断如何影响自回归大型语言模型（LLMs）的序列推理。 我们在两个 8B 模型（Qwen3-8B 和 LLaMA-3.1-8B-Instruct）上对 GSM8K 基准的 250 对推导进行了评估， 原文：http://arxiv.org/abs/2611.14209",
+        "[2026-11-10] **ScaleBrain：用于 EEG 基础模型的尺度一致性框架**（arXiv）— 在大型无标签脑电图（EEG）语料库上进行预训练的基础模型已成为脑机接口（BCI）应用的变革性范式。最近的 EEG 基础模型表明，源自固定长度片段的多尺度表示可以改善 EEG 表示学习。现有框架通常通过特征级运算来构建时间尺度。 然而，这些操作使所学特征与原始EEG信号的尺度特异性特征之间的对应关系变得不那么明显。此外， 原文：http://arxiv.org/abs/2611.14035",
+        "[2026-11-10] **SinkState：对循环状态进行即时 SVD，以实现高效的混合 LLM 服务**（arXiv）— 混合模型将 softmax 注意力与线性注意力相结合，将历史信息压缩为固定大小的递归状态，以平衡模型质量和推理效率。 然而，线性注意力并未将这种压缩推至极限：我们发现，线性层的查询、键和值集中在一个稳定的低维子空间中，我们称这种现象为线性注意力汇（linear attention sink），因此每个状态都具有有效的低 原文：http://arxiv.org/abs/2611.14246",
         "[2026-11-05] **信号有多深？初级保健EHR模型中结直肠癌预测的时间-Context长达30年**（arXiv）— EHR foundation models read medical events within a fixed context window, and long context has so far been measured only in tokens. How far back in time a model  原文：http://arxiv.org/abs/2611.07265"
       ]
     }
