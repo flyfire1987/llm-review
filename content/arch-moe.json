@@ -1,7 +1,7 @@
 {
   "title": "MoE 混合专家",
   "summary": "MoE 用「稀疏激活」把参数量与计算量解耦——这是当前唯一能在算力不变的前提下放大模型容量的架构路线。",
-  "updated_at": "2026-11-06",
+  "updated_at": "2026-11-14",
   "sections": [
     {
       "heading": "核心思想",
@@ -113,6 +113,7 @@
       "tldr": "自动同步的技术动态（每日 03:00 任务写入），随领域进展更新。",
       "body": "<p>以下条目由每日同步任务自动追加，按时间倒序排列，<strong>原文链接</strong>可直达原论文/原文。</p>",
       "points": [
+        "[2026-11-12] **Lara Mini Base：语言多样性是一种资源，而非权衡取舍**（arXiv）— 通用语言模型主要使用英语进行训练：在我们评测的开源模型中，非英语预训练数据最多仅占 12%。为欧洲语言构建的模型为它们提供了多得多的数据，但得分却远低于同等规模的通用模型。一个常见的担忧是，在小型模型中，各种语言会争夺容量。 我们隆重推出Lara Mini base，这是一款从零开始训练的模型，训练数据包括6万亿个英语 原文：http://arxiv.org/abs/2611.16956",
         "[2026-11-04] **FastAFD ： Attention-FFN分解何时在机架式NVLink上付款？**（arXiv）— Attention-FFN disaggregation (AFD) separates attention from the experts of a mixture-of-experts (MoE) model and has been reported to raise decode throughput ove 原文：http://arxiv.org/abs/2611.07149",
         "[2026-11-04] **局部开放权重LLM Agents漏洞再现任务分析**（arXiv）— Open-weight language models that fit on a single consumer GPU are becoming capable on a growing range of tasks, and they matter because they can run locally wit 原文：http://arxiv.org/abs/2611.06257",
         "[2026-11-03] **GC-MoE ：通过CUDA Green Context与FP8/FP4分组GEMM重叠的专家并行Token调度**（arXiv）— Under expert parallelism, mixture-of-experts (MoE) layers pay all-to-all token dispatch, grouped GEMMs, and a combine step in every layer. In decode each rank h 原文：http://arxiv.org/abs/2611.04222"
